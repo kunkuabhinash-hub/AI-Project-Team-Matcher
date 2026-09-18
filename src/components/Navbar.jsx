@@ -1,9 +1,11 @@
 import React from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import './Navbar.css';
 
 const Navbar = () => {
   const navigate = useNavigate();
+  const { currentUser } = useAuth();
 
   return (
     <header className="navbar glass">
@@ -17,8 +19,16 @@ const Navbar = () => {
           <a href="#how-it-works">How it Works</a>
         </nav>
         <div className="navbar-actions">
-          <button className="btn btn-outline" onClick={() => navigate('/login')}>Log In</button>
-          <button className="btn btn-primary" onClick={() => navigate('/signup')}>Sign Up</button>
+          {currentUser ? (
+            <button className="btn btn-primary" onClick={() => navigate('/dashboard')}>
+              Dashboard
+            </button>
+          ) : (
+            <>
+              <button className="btn btn-outline" onClick={() => navigate('/login')}>Log In</button>
+              <button className="btn btn-primary" onClick={() => navigate('/signup')}>Sign Up</button>
+            </>
+          )}
         </div>
       </div>
     </header>

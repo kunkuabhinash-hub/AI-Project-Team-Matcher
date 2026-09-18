@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import './Auth.css';
 
 const Login = () => {
@@ -9,7 +10,12 @@ const Login = () => {
   });
   
   const [errors, setErrors] = useState({});
+  const [formError, setFormError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  
+  const { login } = useAuth();
+  const navigate = useNavigate();
 
   const validate = () => {
     const newErrors = {};
@@ -39,13 +45,29 @@ const Login = () => {
         [e.target.name]: ''
       });
     }
+    if (formError) setFormError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validate()) {
-      console.log('Login form submitted', formData);
-      // Backend integration will happen here in later steps
+    if (!validate()) return;
+    
+    try {
+      setFormError('');
+      setLoading(true);
+      await login(formData.email, formData.password);
+      navigate('/dashboard');
+    } catch (err) {
+      console.error(err);
+      if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
+        setFormError('Invalid email or password.');
+      } else if (err.code === 'auth/too-many-requests') {
+        setFormError('Too many unsuccessful attempts. Please try again later.');
+      } else {
+        setFormError('Failed to log in. Please check your credentials.');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -66,6 +88,8 @@ const Login = () => {
           <p className="auth-subtitle">Log in to find your perfect team</p>
         </div>
 
+        {formError && <div className="error-alert">{formError}</div>}
+
         <form onSubmit={handleSubmit} noValidate>
           <div className="form-group">
             <label className="form-label" htmlFor="email">Email</label>
@@ -78,6 +102,7 @@ const Login = () => {
                 placeholder="you@college.edu"
                 value={formData.email}
                 onChange={handleChange}
+                disabled={loading}
               />
             </div>
             {errors.email && <span className="error-message">{errors.email}</span>}
@@ -94,11 +119,13 @@ const Login = () => {
                 placeholder="••••••••"
                 value={formData.password}
                 onChange={handleChange}
+                disabled={loading}
               />
               <button 
                 type="button" 
                 className="password-toggle"
                 onClick={() => setShowPassword(!showPassword)}
+                disabled={loading}
               >
                 {showPassword ? 'Hide' : 'Show'}
               </button>
@@ -106,8 +133,8 @@ const Login = () => {
             {errors.password && <span className="error-message">{errors.password}</span>}
           </div>
 
-          <button type="submit" className="btn btn-primary auth-btn">
-            Log In
+          <button type="submit" className={`btn btn-primary auth-btn ${loading ? 'disabled' : ''}`} disabled={loading}>
+            {loading ? 'Logging In...' : 'Log In'}
           </button>
         </form>
 

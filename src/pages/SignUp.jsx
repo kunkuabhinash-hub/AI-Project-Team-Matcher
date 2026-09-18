@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../contexts/AuthContext';
 import './Auth.css';
 
 const SignUp = () => {
@@ -11,8 +12,13 @@ const SignUp = () => {
   });
   
   const [errors, setErrors] = useState({});
+  const [formError, setFormError] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+  const [loading, setLoading] = useState(false);
+  
+  const { signup } = useAuth();
+  const navigate = useNavigate();
 
   const validate = () => {
     const newErrors = {};
@@ -57,13 +63,31 @@ const SignUp = () => {
         [e.target.name]: ''
       });
     }
+    if (formError) setFormError('');
   };
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (validate()) {
-      console.log('Sign Up form submitted', formData);
-      // Backend integration will happen here in later steps
+    if (!validate()) return;
+    
+    try {
+      setFormError('');
+      setLoading(true);
+      await signup(formData.email, formData.password, formData.fullName);
+      navigate('/dashboard');
+    } catch (err) {
+      console.error(err);
+      if (err.code === 'auth/email-already-in-use') {
+        setFormError('An account with this email already exists.');
+      } else if (err.code === 'auth/invalid-email') {
+        setFormError('Invalid email address format.');
+      } else if (err.code === 'auth/weak-password') {
+        setFormError('Password is too weak.');
+      } else {
+        setFormError('Failed to create an account. Please try again later.');
+      }
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -84,6 +108,8 @@ const SignUp = () => {
           <p className="auth-subtitle">Join your college network</p>
         </div>
 
+        {formError && <div className="error-alert">{formError}</div>}
+
         <form onSubmit={handleSubmit} noValidate>
           <div className="form-group">
             <label className="form-label" htmlFor="fullName">Full Name</label>
@@ -96,6 +122,7 @@ const SignUp = () => {
                 placeholder="John Doe"
                 value={formData.fullName}
                 onChange={handleChange}
+                disabled={loading}
               />
             </div>
             {errors.fullName && <span className="error-message">{errors.fullName}</span>}
@@ -112,6 +139,7 @@ const SignUp = () => {
                 placeholder="you@college.edu"
                 value={formData.email}
                 onChange={handleChange}
+                disabled={loading}
               />
             </div>
             {errors.email && <span className="error-message">{errors.email}</span>}
@@ -128,11 +156,13 @@ const SignUp = () => {
                 placeholder="••••••••"
                 value={formData.password}
                 onChange={handleChange}
+                disabled={loading}
               />
               <button 
                 type="button" 
                 className="password-toggle"
                 onClick={() => setShowPassword(!showPassword)}
+                disabled={loading}
               >
                 {showPassword ? 'Hide' : 'Show'}
               </button>
@@ -151,11 +181,13 @@ const SignUp = () => {
                 placeholder="••••••••"
                 value={formData.confirmPassword}
                 onChange={handleChange}
+                disabled={loading}
               />
               <button 
                 type="button" 
                 className="password-toggle"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                disabled={loading}
               >
                 {showConfirmPassword ? 'Hide' : 'Show'}
               </button>
@@ -163,8 +195,8 @@ const SignUp = () => {
             {errors.confirmPassword && <span className="error-message">{errors.confirmPassword}</span>}
           </div>
 
-          <button type="submit" className="btn btn-primary auth-btn">
-            Sign Up
+          <button type="submit" className={`btn btn-primary auth-btn ${loading ? 'disabled' : ''}`} disabled={loading}>
+            {loading ? 'Signing Up...' : 'Sign Up'}
           </button>
         </form>
 
