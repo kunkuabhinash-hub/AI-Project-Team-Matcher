@@ -339,7 +339,7 @@ const ProjectDetails = () => {
                 <div className="team-members-grid">
                   <div className="glass team-member-card owner-card">
                     <div className="member-badge">Owner</div>
-                    <h4>{teamData.ownerStudentId.name}</h4>
+                    <h4>{teamData.ownerStudentId.fullName}</h4>
                     <p className="text-muted small">Experience: {teamData.ownerStudentId.experience || 'Not specified'}</p>
                     <div className="skills-list small" style={{ marginTop: '0.5rem' }}>
                       {teamData.ownerStudentId.skills && teamData.ownerStudentId.skills.map((s, i) => (
@@ -350,7 +350,7 @@ const ProjectDetails = () => {
                   
                   {teamData.memberStudentIds.filter(m => m._id !== teamData.ownerStudentId._id).map((member) => (
                     <div key={member._id} className="glass team-member-card">
-                      <h4>{member.name}</h4>
+                      <h4>{member.fullName}</h4>
                       <p className="text-muted small">Experience: {member.experience || 'Not specified'}</p>
                       <div className="skills-list small" style={{ marginTop: '0.5rem' }}>
                         {member.skills && member.skills.map((s, i) => (

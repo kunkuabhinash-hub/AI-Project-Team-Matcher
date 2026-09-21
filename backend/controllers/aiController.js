@@ -63,7 +63,7 @@ export const matchProject = async (req, res) => {
 
     const studentsPayload = students.map(s => ({
       id: s.firebaseUid,
-      name: s.name,
+      name: s.fullName,
       skills: s.skills || [],
       interests: s.interests || [],
       experience: s.experience || 'Not specified',
@@ -92,7 +92,7 @@ export const matchProject = async (req, res) => {
       
       enrichedRecommendations.push({
         studentId: rec.studentId,
-        studentName: studentProfile.name,
+        studentName: studentProfile.fullName,
         skills: studentProfile.skills || [],
         interests: studentProfile.interests || [],
         experience: studentProfile.experience || 'Not specified',

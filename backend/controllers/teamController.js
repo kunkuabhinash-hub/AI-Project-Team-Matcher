@@ -64,8 +64,8 @@ export const createTeam = async (req, res) => {
     });
 
     const populatedTeam = await Team.findById(team._id)
-      .populate('ownerStudentId', 'name skills interests experience availability')
-      .populate('memberStudentIds', 'name skills interests experience availability');
+      .populate('ownerStudentId', 'fullName skills interests experience availability')
+      .populate('memberStudentIds', 'fullName skills interests experience availability');
 
     res.status(201).json(populatedTeam);
 
@@ -83,8 +83,8 @@ export const getTeam = async (req, res) => {
     const { projectId } = req.params;
 
     const team = await Team.findOne({ projectId })
-      .populate('ownerStudentId', 'name skills interests experience availability')
-      .populate('memberStudentIds', 'name skills interests experience availability');
+      .populate('ownerStudentId', 'fullName skills interests experience availability')
+      .populate('memberStudentIds', 'fullName skills interests experience availability');
 
     if (!team) {
       return res.status(404).json({ message: 'No team found for this project' });
