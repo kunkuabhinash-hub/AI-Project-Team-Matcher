@@ -36,7 +36,7 @@ export const createTeam = async (req, res) => {
 
     // Deduplicate IDs and remove owner if mistakenly included
     const uniqueSelectedIds = [...new Set(selectedStudentIds)].filter(
-      id => id !== ownerStudent._id.toString()
+      id => id !== ownerStudent.firebaseUid && id !== ownerStudent._id.toString()
     );
 
     const finalMemberCount = 1 + uniqueSelectedIds.length;
@@ -44,15 +44,18 @@ export const createTeam = async (req, res) => {
       return res.status(400).json({ message: `Team size exceeds maximum allowed (${project.teamSize})` });
     }
 
-    // Validate ObjectIds and verify students exist
+    // Resolve Firebase UIDs to MongoDB ObjectIds
     const memberObjectIds = [ownerStudent._id];
-    for (const id of uniqueSelectedIds) {
-      if (!mongoose.Types.ObjectId.isValid(id)) {
-         return res.status(400).json({ message: `Invalid student ID: ${id}` });
+    for (const uid of uniqueSelectedIds) {
+      let student = await Student.findOne({ firebaseUid: uid });
+      
+      // Fallback if the frontend accidentally sent a MongoDB ObjectId
+      if (!student && mongoose.Types.ObjectId.isValid(uid)) {
+        student = await Student.findById(uid);
       }
-      const student = await Student.findById(id);
+
       if (!student) {
-        return res.status(404).json({ message: `Student not found with ID: ${id}` });
+        return res.status(400).json({ message: `Invalid student ID: ${uid}` });
       }
       memberObjectIds.push(student._id);
     }

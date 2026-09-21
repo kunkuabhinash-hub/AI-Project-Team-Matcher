@@ -33,10 +33,99 @@ const ProjectDetails = () => {
   const [isDeletingTeam, setIsDeletingTeam] = useState(false);
 
   const [aiRecommendations, setAiRecommendations] = useState(null);
-  const [teamCoverage, setTeamCoverage] = useState(null);
-  const [skillCoverage, setSkillCoverage] = useState(null);
+  const [projectOwner, setProjectOwner] = useState(null);
   const [isMatching, setIsMatching] = useState(false);
   const [matchError, setMatchError] = useState('');
+
+  const computedCoverage = React.useMemo(() => {
+    if (!project || !project.requiredSkills || !projectOwner) return null;
+
+    const normalizeSkill = (skill) => skill.trim().toLowerCase();
+    
+    // 1. Start with the project owner
+    const teamMembers = [{
+      studentId: projectOwner.studentId,
+      studentName: projectOwner.studentName,
+      skills: projectOwner.skills || []
+    }];
+
+    // 2. Add currently selected students from aiRecommendations
+    if (aiRecommendations) {
+      selectedStudents.forEach(id => {
+        const rec = aiRecommendations.find(r => r.studentId === id);
+        if (rec) {
+          teamMembers.push({
+            studentId: rec.studentId,
+            studentName: rec.studentName || rec.studentId,
+            skills: rec.skills || []
+          });
+        }
+      });
+    }
+
+    const skillToStudentsMap = {};
+    const skillCoverage = [];
+
+    // Initialize required skills
+    project.requiredSkills.forEach(reqSkill => {
+      const normReqSkill = normalizeSkill(reqSkill);
+      skillToStudentsMap[normReqSkill] = [];
+      skillCoverage.push({
+        skill: reqSkill,
+        covered: false,
+        students: []
+      });
+    });
+
+    // Evaluate coverage against all actual team members
+    teamMembers.forEach(member => {
+      (member.skills || []).forEach(memberSkill => {
+        const normMemberSkill = normalizeSkill(memberSkill);
+        if (skillToStudentsMap[normMemberSkill] !== undefined) {
+          const existingStudents = skillToStudentsMap[normMemberSkill];
+          if (!existingStudents.some(s => s.studentId === member.studentId)) {
+             existingStudents.push({
+               studentId: member.studentId,
+               studentName: member.studentName
+             });
+          }
+        }
+      });
+    });
+
+    const coveredSkills = [];
+    const missingSkills = [];
+
+    skillCoverage.forEach(sc => {
+      const normSkill = normalizeSkill(sc.skill);
+      const coveringStudents = skillToStudentsMap[normSkill];
+      
+      if (coveringStudents && coveringStudents.length > 0) {
+        sc.covered = true;
+        sc.students = coveringStudents;
+        coveredSkills.push(sc.skill);
+      } else {
+        missingSkills.push(sc.skill);
+      }
+    });
+
+    const totalRequired = project.requiredSkills.length;
+    const coveragePercentage = totalRequired === 0 ? 100 : Math.round((coveredSkills.length / totalRequired) * 100);
+
+    return {
+      teamCoverage: {
+        requiredSkills: project.requiredSkills,
+        coveredSkills,
+        missingSkills,
+        coveragePercentage
+      },
+      skillCoverage
+    };
+  }, [project, projectOwner, selectedStudents, aiRecommendations]);
+
+  const teamCoverage = computedCoverage ? computedCoverage.teamCoverage : null;
+  const skillCoverage = computedCoverage ? computedCoverage.skillCoverage : null;
+
 
   useEffect(() => {
     const fetchProject = async () => {
@@ -141,7 +230,7 @@ const ProjectDetails = () => {
   };
 
   const handleFindTeam = async () => {
-    setIsMatching(true); setMatchError(''); setAiRecommendations(null); setTeamCoverage(null); setSkillCoverage(null);
+    setIsMatching(true); setMatchError(''); setAiRecommendations(null); setProjectOwner(null);
     try {
       const token = await currentUser.getIdToken();
       const res = await fetch(`${API}/api/ai/match/${id}`, {
@@ -157,8 +246,7 @@ const ProjectDetails = () => {
         throw new Error(data.message || 'Unable to generate recommendations. Please try again.');
       }
       setAiRecommendations(data.recommendations || []);
-      setTeamCoverage(data.teamCoverage || null);
-      setSkillCoverage(data.skillCoverage || null);
+      setProjectOwner(data.projectOwner || null);
     } catch (err) { setMatchError(err.message); }
     finally { setIsMatching(false); }
   };

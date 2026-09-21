@@ -5,9 +5,14 @@ from typing import List, Optional
 from dotenv import load_dotenv
 import os
 
-from matching import match_students_to_project
+from matching import match_students_to_project, GeminiServiceUnavailableError, GeminiResponseParsingError
+from pydantic import ValidationError
 
-load_dotenv()
+from pathlib import Path
+
+# Explicitly load .env from the ai-service directory
+env_path = Path(__file__).parent / ".env"
+load_dotenv(dotenv_path=env_path)
 
 app = FastAPI(
     title="AI Matching Service",
@@ -80,27 +85,42 @@ def run_matching(request: MatchRequest):
         result = match_students_to_project(project_dict, students_list)
         
         # Pydantic will automatically validate the returned dict against MatchResponse
-        # If Gemini returned invalid data, Pydantic will throw a ValidationError
-        # and FastAPI will automatically return a 500/422. However, returning a clear error is better.
-        response_model = MatchResponse(**result)
+        try:
+            response_model = MatchResponse(**result)
+        except ValidationError as e:
+            print(f"Gemini response validation failed: {e}")
+            raise GeminiResponseParsingError("Gemini returned malformed recommendation structure")
         
         # Validate that the recommendations don't exceed teamSize
         if len(response_model.recommendations) > request.project.teamSize:
-            raise ValueError("Gemini returned more recommendations than the requested team size")
+            raise GeminiResponseParsingError("Gemini returned more recommendations than the requested team size")
             
         # Validate student IDs actually exist in the request
         valid_student_ids = {s.id for s in request.students}
         for rec in response_model.recommendations:
             if rec.studentId not in valid_student_ids:
-                raise ValueError(f"Gemini recommended a fabricated student ID: {rec.studentId}")
+                raise GeminiResponseParsingError(f"Gemini recommended a fabricated student ID: {rec.studentId}")
                 
         return response_model
 
+    except GeminiServiceUnavailableError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+    except GeminiResponseParsingError as e:
+        raise HTTPException(status_code=502, detail=str(e))
     except ValueError as ve:
-        raise HTTPException(status_code=500, detail=str(ve))
+        raise HTTPException(status_code=400, detail=str(ve))
     except Exception as e:
-        print(f"Matching error: {e}")
-        raise HTTPException(status_code=500, detail="Internal server error during matching")
+        import traceback
+        import sys
+        print("--- MATCHING ERROR TRACEBACK ---", file=sys.stderr)
+        traceback.print_exc(file=sys.stderr)
+        print("--------------------------------", file=sys.stderr)
+        
+        error_msg = str(e)
+        if "API_KEY" in error_msg or os.environ.get("GEMINI_API_KEY", "") in error_msg:
+            error_msg = "An error occurred, but details are redacted to protect secrets."
+            
+        raise HTTPException(status_code=500, detail=f"Internal server error during matching: {error_msg}")
 
 if __name__ == "__main__":
     import uvicorn
