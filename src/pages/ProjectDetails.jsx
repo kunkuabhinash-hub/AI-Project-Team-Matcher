@@ -33,7 +33,7 @@ const ProjectDetails = () => {
     const fetchProject = async () => {
       try {
         const token = await currentUser.getIdToken();
-        const response = await fetch(`http://localhost:5000/api/projects/${id}`, {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects/${id}`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -51,7 +51,7 @@ const ProjectDetails = () => {
 
         // If creator, fetch owner requests, else fetch my requests to find status
         if (data.creatorFirebaseUid === currentUser.uid) {
-          const reqResponse = await fetch(`http://localhost:5000/api/projects/${id}/join-requests`, {
+          const reqResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects/${id}/join-requests`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (reqResponse.ok) {
@@ -60,7 +60,7 @@ const ProjectDetails = () => {
           }
         } else {
           // fetch my requests to see if I already requested
-          const myReqResponse = await fetch(`http://localhost:5000/api/join-requests/my`, {
+          const myReqResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/join-requests/my`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (myReqResponse.ok) {
@@ -74,7 +74,7 @@ const ProjectDetails = () => {
 
         // Fetch formed team if any
         try {
-          const teamRes = await fetch(`http://localhost:5000/api/projects/${id}/team`, {
+          const teamRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects/${id}/team`, {
             headers: { Authorization: `Bearer ${token}` }
           });
           if (teamRes.ok) {
@@ -102,7 +102,7 @@ const ProjectDetails = () => {
     setActionError('');
     try {
       const token = await currentUser.getIdToken();
-      const response = await fetch(`http://localhost:5000/api/projects/${id}/join`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects/${id}/join`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -123,7 +123,7 @@ const ProjectDetails = () => {
     setActionError('');
     try {
       const token = await currentUser.getIdToken();
-      const response = await fetch(`http://localhost:5000/api/join-requests/${requestId}/status`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/join-requests/${requestId}/status`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
@@ -152,7 +152,7 @@ const ProjectDetails = () => {
     setActionError('');
     try {
       const token = await currentUser.getIdToken();
-      const response = await fetch(`http://localhost:5000/api/projects/${id}/team`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects/${id}/team`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -177,7 +177,7 @@ const ProjectDetails = () => {
     setActionError('');
     try {
       const token = await currentUser.getIdToken();
-      const response = await fetch(`http://localhost:5000/api/projects/${id}/team`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects/${id}/team`, {
         method: 'DELETE',
         headers: {
           Authorization: `Bearer ${token}`
@@ -204,7 +204,7 @@ const ProjectDetails = () => {
     setSkillCoverage(null);
     try {
       const token = await currentUser.getIdToken();
-      const response = await fetch(`http://localhost:5000/api/ai/match/${id}`, {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/ai/match/${id}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

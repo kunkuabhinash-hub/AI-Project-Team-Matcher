@@ -48,7 +48,7 @@ const CreateProject = () => {
         teamSize: parseInt(formData.teamSize, 10)
       };
 
-      const response = await fetch('http://localhost:5000/api/projects', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

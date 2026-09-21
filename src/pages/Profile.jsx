@@ -27,7 +27,7 @@ const Profile = () => {
     const fetchProfile = async () => {
       try {
         const token = await currentUser.getIdToken();
-        const response = await fetch('http://localhost:5000/api/profile', {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/profile`, {
           headers: {
             Authorization: `Bearer ${token}`
           }
@@ -102,7 +102,7 @@ const Profile = () => {
         interests: interestsArray
       };
 
-      const response = await fetch('http://localhost:5000/api/profile', {
+      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/profile`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',

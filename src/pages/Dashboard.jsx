@@ -17,7 +17,7 @@ const Dashboard = () => {
         const token = await currentUser.getIdToken();
         
         // Fetch Profile
-        const profileRes = await fetch('http://localhost:5000/api/profile', {
+        const profileRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/profile`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (profileRes.ok) {
@@ -26,7 +26,7 @@ const Dashboard = () => {
         }
 
         // Fetch Projects
-        const projectsRes = await fetch('http://localhost:5000/api/projects', {
+        const projectsRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects`, {
           headers: { Authorization: `Bearer ${token}` }
         });
         if (projectsRes.ok) {

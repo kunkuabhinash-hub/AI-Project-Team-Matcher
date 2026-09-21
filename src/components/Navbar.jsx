@@ -31,6 +31,7 @@ const Navbar = () => {
                 <>
                   <a href="#features">Features</a>
                   <a href="#how-it-works">How it Works</a>
+                  <Link to="/projects">Browse Projects</Link>
                 </>
               )}
             </nav>

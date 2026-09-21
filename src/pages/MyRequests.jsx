@@ -13,7 +13,7 @@ const MyRequests = () => {
     const fetchMyRequests = async () => {
       try {
         const token = await currentUser.getIdToken();
-        const response = await fetch('http://localhost:5000/api/join-requests/my', {
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/join-requests/my`, {
           headers: { Authorization: `Bearer ${token}` }
         });
 
