@@ -107,7 +107,72 @@ export const matchProject = async (req, res) => {
     // Replace the raw recommendations with the enriched ones
     result.data.recommendations = enrichedRecommendations;
 
-    // 7. Return enriched result
+    // 7. Deterministic Team-Level Skill Coverage Analysis
+    const normalizeSkill = (skill) => skill.trim().toLowerCase();
+    
+    const coveredSkillsMap = new Map(); // Normalized skill -> Original skill
+    const missingSkills = [];
+    const skillCoverage = [];
+
+    // Track which student covers what
+    const skillToStudentsMap = {}; // Normalized skill -> Array of {studentId, studentName}
+
+    // Initialize missing skills and skill coverage
+    project.requiredSkills.forEach(reqSkill => {
+      const normReqSkill = normalizeSkill(reqSkill);
+      skillToStudentsMap[normReqSkill] = [];
+      skillCoverage.push({
+        skill: reqSkill,
+        covered: false,
+        students: []
+      });
+    });
+
+    // Populate skill coverage from recommended students
+    enrichedRecommendations.forEach(rec => {
+      rec.skills.forEach(studentSkill => {
+        const normStudentSkill = normalizeSkill(studentSkill);
+        if (skillToStudentsMap[normStudentSkill] !== undefined) {
+          // This required skill is covered by this student
+          const existingStudents = skillToStudentsMap[normStudentSkill];
+          // Prevent duplicates
+          if (!existingStudents.some(s => s.studentId === rec.studentId)) {
+             existingStudents.push({
+               studentId: rec.studentId,
+               studentName: rec.studentName
+             });
+          }
+        }
+      });
+    });
+
+    // Finalize skillCoverage array and build missing/covered lists
+    const coveredSkills = [];
+    skillCoverage.forEach(sc => {
+      const normSkill = normalizeSkill(sc.skill);
+      const coveringStudents = skillToStudentsMap[normSkill];
+      
+      if (coveringStudents && coveringStudents.length > 0) {
+        sc.covered = true;
+        sc.students = coveringStudents;
+        coveredSkills.push(sc.skill); // Use original required skill name
+      } else {
+        missingSkills.push(sc.skill);
+      }
+    });
+
+    const totalRequired = project.requiredSkills.length;
+    const coveragePercentage = totalRequired === 0 ? 100 : Math.round((coveredSkills.length / totalRequired) * 100);
+
+    result.data.teamCoverage = {
+      requiredSkills: project.requiredSkills,
+      coveredSkills,
+      missingSkills,
+      coveragePercentage
+    };
+    result.data.skillCoverage = skillCoverage;
+
+    // 8. Return enriched result with coverage
     res.status(200).json(result.data);
 
   } catch (error) {

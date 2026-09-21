@@ -18,6 +18,8 @@ const ProjectDetails = () => {
 
   // AI Matching state
   const [aiRecommendations, setAiRecommendations] = useState(null);
+  const [teamCoverage, setTeamCoverage] = useState(null);
+  const [skillCoverage, setSkillCoverage] = useState(null);
   const [isMatching, setIsMatching] = useState(false);
   const [matchError, setMatchError] = useState('');
 
@@ -124,6 +126,8 @@ const ProjectDetails = () => {
     setIsMatching(true);
     setMatchError('');
     setAiRecommendations(null);
+    setTeamCoverage(null);
+    setSkillCoverage(null);
     try {
       const token = await currentUser.getIdToken();
       const response = await fetch(`http://localhost:5000/api/ai/match/${id}`, {
@@ -145,6 +149,8 @@ const ProjectDetails = () => {
       }
       
       setAiRecommendations(data.recommendations || []);
+      setTeamCoverage(data.teamCoverage || null);
+      setSkillCoverage(data.skillCoverage || null);
     } catch (err) {
       setMatchError(err.message || 'Unable to generate team recommendations. Please try again.');
     } finally {
@@ -267,9 +273,72 @@ const ProjectDetails = () => {
 
                   {aiRecommendations !== null && !isMatching && (
                     aiRecommendations.length === 0 ? (
-                      <p className="text-muted">No suitable students were found for this project yet.</p>
+                      <p className="text-muted">No students have been recommended yet.</p>
                     ) : (
-                      <div className="recommendations-list">
+                      <>
+                        {teamCoverage && (
+                          <div className="glass team-coverage-card">
+                            <h4>Team Skill Coverage</h4>
+                            
+                            {teamCoverage.requiredSkills.length === 0 ? (
+                              <p className="text-muted">No required skills were specified for this project.</p>
+                            ) : (
+                              <>
+                                <div className="coverage-header">
+                                  <span>Coverage:</span>
+                                  <strong>{teamCoverage.coveragePercentage}%</strong>
+                                </div>
+                                <div className="coverage-track">
+                                  <div 
+                                    className="coverage-fill" 
+                                    style={{ width: `${teamCoverage.coveragePercentage}%` }}
+                                  ></div>
+                                </div>
+                                
+                                {teamCoverage.missingSkills.length === 0 ? (
+                                  <p className="text-success" style={{ margin: '1rem 0' }}>All required project skills are covered by the recommended team.</p>
+                                ) : (
+                                  <div className="coverage-lists">
+                                    <div className="coverage-list-col">
+                                      <strong>Covered Skills:</strong>
+                                      <ul className="covered-skill-list">
+                                        {teamCoverage.coveredSkills.map(skill => (
+                                          <li key={skill} className="covered-skill">✓ {skill}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                    <div className="coverage-list-col">
+                                      <strong>Missing Skills:</strong>
+                                      <ul className="missing-skill-list">
+                                        {teamCoverage.missingSkills.map(skill => (
+                                          <li key={skill} className="missing-skill">⚠ {skill}</li>
+                                        ))}
+                                      </ul>
+                                    </div>
+                                  </div>
+                                )}
+
+                                {skillCoverage && skillCoverage.length > 0 && (
+                                  <div className="skill-ownership">
+                                    <strong style={{display: 'block', marginBottom: '0.5rem'}}>Skill Ownership:</strong>
+                                    {skillCoverage.map(sc => (
+                                      <div key={sc.skill} className="ownership-row">
+                                        <span className="ownership-skill">{sc.skill}</span>
+                                        <span className="ownership-arrow">→</span>
+                                        <span className="ownership-students">
+                                          {sc.covered 
+                                            ? sc.students.map(s => s.studentName).join(', ') 
+                                            : <span className="text-muted">No one</span>}
+                                        </span>
+                                      </div>
+                                    ))}
+                                  </div>
+                                )}
+                              </>
+                            )}
+                          </div>
+                        )}
+                        <div className="recommendations-list">
                         {aiRecommendations.map((rec, index) => (
                           <div key={index} className="glass recommendation-card">
                             <div className="rec-header">
@@ -315,6 +384,7 @@ const ProjectDetails = () => {
                           </div>
                         ))}
                       </div>
+                    </>
                     )
                   )}
                   {aiRecommendations === null && !isMatching && !matchError && (
