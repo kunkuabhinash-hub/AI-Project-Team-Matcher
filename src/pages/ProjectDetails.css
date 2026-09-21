@@ -329,3 +329,71 @@
 .ownership-students {
   color: var(--text-main);
 }
+
+/* Team Formation Styles */
+.team-formation-controls {
+  display: flex;
+  align-items: center;
+}
+
+.team-select-checkbox {
+  width: 1.25rem;
+  height: 1.25rem;
+  accent-color: var(--primary-color);
+  cursor: pointer;
+}
+
+.team-select-checkbox:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.recommendation-card.selected {
+  border: 2px solid var(--primary-color);
+  background: rgba(74, 144, 226, 0.05);
+}
+
+.project-team-section {
+  border-left: 4px solid #50e3c2;
+}
+
+.team-size-indicator {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  background: rgba(255, 255, 255, 0.05);
+  padding: 0.4rem 0.8rem;
+  border-radius: 20px;
+}
+
+.team-members-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.5rem;
+  margin-top: 1.5rem;
+}
+
+.team-member-card {
+  padding: 1.5rem;
+  text-align: center;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.owner-card {
+  border: 1px solid rgba(80, 227, 194, 0.3);
+  background: rgba(80, 227, 194, 0.05);
+}
+
+.member-badge {
+  position: absolute;
+  top: -10px;
+  background: #50e3c2;
+  color: #000;
+  font-size: 0.75rem;
+  font-weight: bold;
+  padding: 0.2rem 0.6rem;
+  border-radius: 12px;
+  text-transform: uppercase;
+}

@@ -16,6 +16,12 @@ const ProjectDetails = () => {
   const [requesting, setRequesting] = useState(false);
   const [actionError, setActionError] = useState('');
 
+  // Team state
+  const [teamData, setTeamData] = useState(null);
+  const [selectedStudents, setSelectedStudents] = useState([]);
+  const [isFormingTeam, setIsFormingTeam] = useState(false);
+  const [isDeletingTeam, setIsDeletingTeam] = useState(false);
+
   // AI Matching state
   const [aiRecommendations, setAiRecommendations] = useState(null);
   const [teamCoverage, setTeamCoverage] = useState(null);
@@ -64,6 +70,19 @@ const ProjectDetails = () => {
               setJoinStatus(existingReq.status);
             }
           }
+        }
+
+        // Fetch formed team if any
+        try {
+          const teamRes = await fetch(`http://localhost:5000/api/projects/${id}/team`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (teamRes.ok) {
+            const teamInfo = await teamRes.json();
+            setTeamData(teamInfo);
+          }
+        } catch (e) {
+          console.error('Error fetching team:', e);
         }
       } catch (err) {
         setError(err.message || 'Error loading project');
@@ -119,6 +138,61 @@ const ProjectDetails = () => {
       setOwnerRequests(prev => prev.map(req => req._id === requestId ? { ...req, status } : req));
     } catch (err) {
       setActionError(err.message);
+    }
+  };
+
+  const handleToggleStudent = (studentId) => {
+    setSelectedStudents(prev => 
+      prev.includes(studentId) ? prev.filter(id => id !== studentId) : [...prev, studentId]
+    );
+  };
+
+  const handleFormTeam = async () => {
+    setIsFormingTeam(true);
+    setActionError('');
+    try {
+      const token = await currentUser.getIdToken();
+      const response = await fetch(`http://localhost:5000/api/projects/${id}/team`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ selectedStudentIds: selectedStudents })
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.message || 'Failed to form team');
+      
+      setTeamData(data); // Team successfully formed
+    } catch (err) {
+      setActionError(err.message);
+    } finally {
+      setIsFormingTeam(false);
+    }
+  };
+
+  const handleDeleteTeam = async () => {
+    if (!window.confirm("Are you sure you want to delete this team?")) return;
+    setIsDeletingTeam(true);
+    setActionError('');
+    try {
+      const token = await currentUser.getIdToken();
+      const response = await fetch(`http://localhost:5000/api/projects/${id}/team`, {
+        method: 'DELETE',
+        headers: {
+          Authorization: `Bearer ${token}`
+        }
+      });
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || 'Failed to delete team');
+      }
+      setTeamData(null);
+      setSelectedStudents([]);
+    } catch (err) {
+      setActionError(err.message);
+    } finally {
+      setIsDeletingTeam(false);
     }
   };
 
@@ -253,10 +327,70 @@ const ProjectDetails = () => {
               </div>
             </section>
 
-            {project.creatorFirebaseUid === currentUser.uid && (
+            {teamData && (
+              <section className="detail-section project-team-section">
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
+                  <h3>Project Team</h3>
+                  <div className="team-size-indicator">
+                    {teamData.memberStudentIds.length} / {project.teamSize} members
+                  </div>
+                </div>
+                
+                <div className="team-members-grid">
+                  <div className="glass team-member-card owner-card">
+                    <div className="member-badge">Owner</div>
+                    <h4>{teamData.ownerStudentId.name}</h4>
+                    <p className="text-muted small">Experience: {teamData.ownerStudentId.experience || 'Not specified'}</p>
+                    <div className="skills-list small" style={{ marginTop: '0.5rem' }}>
+                      {teamData.ownerStudentId.skills && teamData.ownerStudentId.skills.map((s, i) => (
+                        <span key={i} className="skill-tag">{s}</span>
+                      ))}
+                    </div>
+                  </div>
+                  
+                  {teamData.memberStudentIds.filter(m => m._id !== teamData.ownerStudentId._id).map((member) => (
+                    <div key={member._id} className="glass team-member-card">
+                      <h4>{member.name}</h4>
+                      <p className="text-muted small">Experience: {member.experience || 'Not specified'}</p>
+                      <div className="skills-list small" style={{ marginTop: '0.5rem' }}>
+                        {member.skills && member.skills.map((s, i) => (
+                          <span key={i} className="skill-tag">{s}</span>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                
+                {project.creatorFirebaseUid === currentUser.uid && (
+                  <div style={{ marginTop: '1.5rem', textAlign: 'right' }}>
+                    <button className="btn btn-outline" style={{ color: 'var(--accent-color)', borderColor: 'var(--accent-color)' }} onClick={handleDeleteTeam} disabled={isDeletingTeam}>
+                      {isDeletingTeam ? 'Deleting...' : 'Delete Team'}
+                    </button>
+                  </div>
+                )}
+              </section>
+            )}
+
+            {project.creatorFirebaseUid === currentUser.uid && !teamData && (
               <>
                 <section className="detail-section ai-recommendation-section">
-                  <h3>AI Recommended Team</h3>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <h3>AI Recommended Team</h3>
+                    {aiRecommendations && aiRecommendations.length > 0 && (
+                      <div className="team-formation-controls">
+                        <span style={{ marginRight: '1rem', fontSize: '0.9rem' }}>
+                          Selected: {selectedStudents.length + 1} / {project.teamSize}
+                        </span>
+                        <button 
+                          className="btn btn-primary btn-sm"
+                          disabled={selectedStudents.length + 1 > project.teamSize || isFormingTeam}
+                          onClick={handleFormTeam}
+                        >
+                          {isFormingTeam ? 'Forming...' : 'Form Team'}
+                        </button>
+                      </div>
+                    )}
+                  </div>
                   
                   {matchError && (
                     <div className="alert error" style={{ marginBottom: '1rem' }}>
@@ -339,10 +473,21 @@ const ProjectDetails = () => {
                           </div>
                         )}
                         <div className="recommendations-list">
-                        {aiRecommendations.map((rec, index) => (
-                          <div key={index} className="glass recommendation-card">
+                        {aiRecommendations.map((rec, index) => {
+                          const isSelected = selectedStudents.includes(rec.studentId);
+                          return (
+                          <div key={index} className={`glass recommendation-card ${isSelected ? 'selected' : ''}`}>
                             <div className="rec-header">
-                              <h4>{rec.studentName || rec.studentId}</h4>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                <input 
+                                  type="checkbox" 
+                                  className="team-select-checkbox"
+                                  checked={isSelected}
+                                  onChange={() => handleToggleStudent(rec.studentId)}
+                                  disabled={!isSelected && (selectedStudents.length + 1 >= project.teamSize)}
+                                />
+                                <h4 style={{ margin: 0 }}>{rec.studentName || rec.studentId}</h4>
+                              </div>
                               <div className="match-score">
                                 {rec.matchScore}% Match
                               </div>
@@ -382,7 +527,8 @@ const ProjectDetails = () => {
                               </div>
                             </div>
                           </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     </>
                     )

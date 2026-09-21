@@ -8,6 +8,7 @@ import profileRoutes from './routes/profileRoutes.js';
 import projectRoutes from './routes/projectRoutes.js';
 import joinRequestRoutes from './routes/joinRequestRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
+import teamRoutes from './routes/teamRoutes.js';
 
 // Load backend env vars
 dotenv.config({ path: path.resolve(import.meta.dirname, '.env') });
@@ -37,6 +38,7 @@ app.get('/api/health', (req, res) => {
 // Routes
 app.use('/api/profile', profileRoutes);
 app.use('/api/projects', projectRoutes);
+app.use('/api/projects', teamRoutes);
 app.use('/api/join-requests', joinRequestRoutes);
 app.use('/api/ai', aiRoutes);
 
