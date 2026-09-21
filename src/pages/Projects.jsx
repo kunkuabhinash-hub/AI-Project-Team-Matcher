@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import { API_URL } from '../config';
 import './Projects.css';
 
 const CATEGORIES = ['All', 'Web Development', 'Mobile Development', 'AI / Machine Learning', 'Data Science', 'Cybersecurity', 'Cloud / DevOps', 'Other'];
@@ -47,7 +48,7 @@ const Projects = () => {
           const token = await currentUser.getIdToken();
           headers['Authorization'] = `Bearer ${token}`;
         }
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects`, { headers });
+        const response = await fetch(`${API_URL}/api/projects`, { headers });
         if (!response.ok) throw new Error('Failed to fetch projects');
         const data = await response.json();
         setProjects(data);

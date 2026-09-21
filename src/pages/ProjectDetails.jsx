@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Navbar from '../components/Navbar';
+import { API_URL as API } from '../config';
 import './ProjectDetails.css';
-
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const getCatClass = (cat) => {
   const map = { 'Web Development': 'cat-web', 'Mobile Development': 'cat-mobile', 'AI / Machine Learning': 'cat-ai', 'Data Science': 'cat-data', 'Cybersecurity': 'cat-cyber', 'Cloud / DevOps': 'cat-cloud' };

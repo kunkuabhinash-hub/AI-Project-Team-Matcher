@@ -2,9 +2,8 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Navbar from '../components/Navbar';
+import { API_URL as API } from '../config';
 import './Profile.css';
-
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const getInitial = (name) => name ? name.charAt(0).toUpperCase() : '?';
 

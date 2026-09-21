@@ -2,9 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 import { Link } from 'react-router-dom';
 import Navbar from '../components/Navbar';
+import { API_URL as API } from '../config';
 import './MyRequests.css';
-
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const MyRequests = () => {
   const { currentUser } = useAuth();

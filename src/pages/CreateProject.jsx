@@ -2,9 +2,8 @@ import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Navbar from '../components/Navbar';
+import { API_URL as API } from '../config';
 import './CreateProject.css';
-
-const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
 
 const CreateProject = () => {
   const { currentUser } = useAuth();
