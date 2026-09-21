@@ -36,6 +36,7 @@ const Navbar = () => {
             <nav className="navbar-nav">
               {currentUser ? (
                 <>
+                  <Link to="/"               className={`nav-link ${isActive('/')}`}>Home</Link>
                   <Link to="/projects"       className={`nav-link ${isActive('/projects')}`}>Projects</Link>
                   <Link to="/create-project" className={`nav-link ${isActive('/create-project')}`}>Create Project</Link>
                   <Link to="/my-requests"    className={`nav-link ${isActive('/my-requests')}`}>My Requests</Link>
@@ -43,7 +44,8 @@ const Navbar = () => {
                 </>
               ) : (
                 <>
-                  <Link to="/projects"       className={`nav-link ${isActive('/projects')}`}>Explore</Link>
+                  <Link to="/"         className={`nav-link ${isActive('/')}`}>Home</Link>
+                  <Link to="/projects" className={`nav-link ${isActive('/projects')}`}>Explore Projects</Link>
                 </>
               )}
             </nav>
@@ -81,13 +83,17 @@ const Navbar = () => {
           <div className="mobile-menu-links">
             {currentUser ? (
               <>
+                <Link to="/"               className={`mobile-nav-link ${isActive('/')}`}               onClick={closeMobile}>Home</Link>
                 <Link to="/projects"       className={`mobile-nav-link ${isActive('/projects')}`}       onClick={closeMobile}>Projects</Link>
                 <Link to="/create-project" className={`mobile-nav-link ${isActive('/create-project')}`} onClick={closeMobile}>Create Project</Link>
                 <Link to="/my-requests"    className={`mobile-nav-link ${isActive('/my-requests')}`}    onClick={closeMobile}>My Requests</Link>
                 <Link to="/profile"        className={`mobile-nav-link ${isActive('/profile')}`}        onClick={closeMobile}>Profile</Link>
               </>
             ) : (
-              <Link to="/projects" className={`mobile-nav-link ${isActive('/projects')}`} onClick={closeMobile}>Explore Projects</Link>
+              <>
+                <Link to="/"         className={`mobile-nav-link ${isActive('/')}`}         onClick={closeMobile}>Home</Link>
+                <Link to="/projects" className={`mobile-nav-link ${isActive('/projects')}`} onClick={closeMobile}>Explore Projects</Link>
+              </>
             )}
           </div>
           <div className="mobile-menu-actions">

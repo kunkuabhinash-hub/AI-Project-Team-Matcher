@@ -1,0 +1,565 @@
+/* ================================================================
+   HOME PAGE — Landing sections below Hero
+   ================================================================ */
+
+/* ── Scroll Reveal ─────────────────────────────────────────── */
+.reveal {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.55s ease, transform 0.55s ease;
+}
+
+.reveal.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.reveal-delay-1 { transition-delay: 0.08s; }
+.reveal-delay-2 { transition-delay: 0.16s; }
+.reveal-delay-3 { transition-delay: 0.24s; }
+.reveal-delay-4 { transition-delay: 0.32s; }
+
+/* ── Section Shared Styles ─────────────────────────────────── */
+.home-section {
+  padding: 80px 0;
+  border-top: 1px solid var(--border);
+}
+
+.home-section-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--blue);
+  margin-bottom: 14px;
+}
+
+.home-section-heading {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+  margin-bottom: 10px;
+}
+
+.home-section-sub {
+  font-size: 15px;
+  color: var(--text-secondary);
+  max-width: 520px;
+  line-height: 1.65;
+}
+
+/* ── Section: How It Works ─────────────────────────────────── */
+.how-it-works {
+  background: var(--bg);
+}
+
+.how-it-works-header {
+  text-align: center;
+  margin-bottom: 56px;
+}
+
+.how-it-works-header .home-section-sub {
+  margin: 0 auto;
+}
+
+.steps-track {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0;
+}
+
+@media (max-width: 900px) {
+  .steps-track {
+    grid-template-columns: 1fr 1fr;
+    gap: 2px;
+  }
+}
+
+@media (max-width: 540px) {
+  .steps-track {
+    grid-template-columns: 1fr;
+    gap: 0;
+  }
+}
+
+/* Connecting line between steps */
+.steps-track::before {
+  content: '';
+  position: absolute;
+  top: 28px;
+  left: calc(12.5% + 16px);
+  right: calc(12.5% + 16px);
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--border), var(--border), var(--border), transparent);
+  pointer-events: none;
+  z-index: 0;
+}
+
+@media (max-width: 900px) {
+  .steps-track::before { display: none; }
+}
+
+.step-item {
+  padding: 0 20px 0;
+  position: relative;
+  z-index: 1;
+}
+
+@media (max-width: 900px) {
+  .step-item {
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: var(--r-lg);
+    background: var(--surface-0);
+    margin: 4px;
+  }
+}
+
+.step-number-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.step-number {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  flex-shrink: 0;
+  position: relative;
+  z-index: 1;
+  transition: all 0.25s ease;
+}
+
+.step-item:hover .step-number {
+  background: var(--blue-muted);
+  border-color: var(--blue-border);
+  color: var(--blue);
+}
+
+.step-connector {
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+@media (max-width: 900px) {
+  .step-connector { display: none; }
+}
+
+/* Last step: no connector on right */
+.step-item:last-child .step-connector {
+  display: none;
+}
+
+.step-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-md);
+  font-size: 18px;
+  margin-bottom: 14px;
+  flex-shrink: 0;
+}
+
+.step-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.step-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.65;
+}
+
+/* ── Section: Why TeamMatcher ───────────────────────────────── */
+.why-section {
+  background: var(--surface-0);
+}
+
+.why-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+}
+
+@media (max-width: 800px) {
+  .why-layout {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+}
+
+.why-features {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.why-feature {
+  display: flex;
+  gap: 16px;
+  padding: 20px 0;
+  border-bottom: 1px solid var(--border);
+  transition: all 0.2s ease;
+}
+
+.why-feature:first-child {
+  padding-top: 0;
+}
+
+.why-feature:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.why-feature-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--r-md);
+  font-size: 18px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.why-feature-content {}
+
+.why-feature-title {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 5px;
+}
+
+.why-feature-desc {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+}
+
+/* Right side: mini project card illustration */
+.why-visual {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.why-card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px;
+}
+
+/* ── Section: AI Matching ───────────────────────────────────── */
+.ai-section {
+  background: var(--bg);
+}
+
+.ai-section-layout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: center;
+}
+
+@media (max-width: 800px) {
+  .ai-section-layout {
+    grid-template-columns: 1fr;
+    gap: 40px;
+  }
+}
+
+/* AI Visualization */
+.ai-viz {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  order: -1;
+}
+
+@media (min-width: 801px) {
+  .ai-viz { order: 0; }
+}
+
+.ai-viz-card {
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px;
+}
+
+.ai-viz-req-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* Animated arrow connector */
+.ai-viz-connector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 4px 0;
+}
+
+.ai-viz-arrow-line {
+  width: 1px;
+  height: 20px;
+  background: linear-gradient(to bottom, transparent, var(--purple), transparent);
+}
+
+.ai-viz-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 14px;
+  background: var(--purple-muted);
+  border: 1px solid var(--purple-border);
+  border-radius: var(--r-full);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--purple);
+  animation: aiPulse 3s ease-in-out infinite;
+}
+
+@keyframes aiPulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(163, 113, 247, 0); }
+  50% { box-shadow: 0 0 0 4px rgba(163, 113, 247, 0.12); }
+}
+
+/* Rec card mini */
+.ai-viz-recs {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ai-viz-rec {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--r-md);
+  transition: border-color 0.2s ease;
+}
+
+.ai-viz-rec:hover {
+  border-color: var(--blue-border);
+}
+
+.ai-viz-rec-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.ai-viz-rec-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  flex: 1;
+}
+
+.ai-viz-rec-score {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--r-full);
+}
+
+/* Coverage bar mini */
+.ai-viz-coverage {
+  padding: 14px 16px;
+}
+
+.ai-viz-coverage-header {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  color: var(--text-secondary);
+}
+
+.ai-viz-coverage-pct {
+  color: var(--green);
+}
+
+.ai-viz-coverage-track {
+  height: 5px;
+  background: var(--surface-2);
+  border-radius: var(--r-full);
+  overflow: hidden;
+}
+
+.ai-viz-coverage-fill {
+  height: 100%;
+  width: 0;
+  background: var(--green);
+  border-radius: var(--r-full);
+  transition: width 1.2s cubic-bezier(0.4, 0, 0.2, 1) 0.6s;
+}
+
+.ai-viz-coverage-fill.animate {
+  width: 67%;
+}
+
+/* ── Section: CTA ────────────────────────────────────────────── */
+.cta-section {
+  background: var(--surface-0);
+}
+
+.cta-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  flex-wrap: wrap;
+}
+
+.cta-copy {}
+
+.cta-heading {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+
+.cta-sub {
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.cta-actions {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+/* ── Footer ─────────────────────────────────────────────────── */
+.home-footer {
+  border-top: 1px solid var(--border);
+  padding: 32px 0;
+  background: var(--bg);
+}
+
+.footer-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.footer-brand {}
+
+.footer-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  text-decoration: none;
+}
+
+.footer-logo-mark {
+  width: 24px;
+  height: 24px;
+  border-radius: 5px;
+  background: linear-gradient(135deg, var(--blue), var(--purple));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 800;
+  color: white;
+  flex-shrink: 0;
+}
+
+.footer-logo-text {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-primary);
+  letter-spacing: -0.01em;
+}
+
+.footer-tagline {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+
+.footer-link {
+  font-size: 13px;
+  color: var(--text-secondary);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+
+.footer-link:hover {
+  color: var(--text-primary);
+}
+
+.footer-copy {
+  font-size: 12px;
+  color: var(--text-muted);
+  flex-shrink: 0;
+}
+
+@media (max-width: 640px) {
+  .footer-inner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 20px;
+  }
+  .cta-inner {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .home-section-heading {
+    font-size: 1.375rem;
+  }
+}
