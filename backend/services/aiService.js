@@ -22,3 +22,45 @@ export const checkAIHealth = async () => {
     };
   }
 };
+
+export const getRecommendations = async (project, students) => {
+  try {
+    const aiServiceUrl = process.env.AI_SERVICE_URL || 'http://localhost:8000';
+    
+    const response = await fetch(`${aiServiceUrl}/match`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ project, students })
+    });
+    
+    if (!response.ok) {
+      // If the Python service returned an error, capture it
+      const errorText = await response.text();
+      console.error(`AI Service returned status: ${response.status} with body: ${errorText}`);
+      
+      let errorMessage = 'AI matching service is unavailable or failed to process the request';
+      try {
+        const errorJson = JSON.parse(errorText);
+        if (errorJson.detail) {
+          errorMessage = errorJson.detail;
+        }
+      } catch (e) {
+        // Not JSON
+      }
+      
+      return { status: 'error', message: errorMessage };
+    }
+    
+    const data = await response.json();
+    return { status: 'success', data };
+    
+  } catch (error) {
+    console.error('AI Matching Connection Error:', error);
+    return {
+      status: 'error',
+      message: 'AI matching service is unavailable or failed to process the request'
+    };
+  }
+};
