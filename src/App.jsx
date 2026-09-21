@@ -6,6 +6,11 @@ import Home from './pages/Home';
 import Login from './pages/Login';
 import SignUp from './pages/SignUp';
 import Dashboard from './pages/Dashboard';
+import Profile from './pages/Profile';
+import CreateProject from './pages/CreateProject';
+import Projects from './pages/Projects';
+import ProjectDetails from './pages/ProjectDetails';
+import MyRequests from './pages/MyRequests';
 import './App.css';
 
 function App() {
@@ -22,6 +27,39 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Dashboard />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/profile" 
+              element={
+                <ProtectedRoute>
+                  <Profile />
+                </ProtectedRoute>
+              } 
+            />
+            <Route path="/projects" element={<Projects />} />
+            <Route 
+              path="/projects/:id" 
+              element={
+                <ProtectedRoute>
+                  <ProjectDetails />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/create-project" 
+              element={
+                <ProtectedRoute>
+                  <CreateProject />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/my-requests" 
+              element={
+                <ProtectedRoute>
+                  <MyRequests />
                 </ProtectedRoute>
               } 
             />

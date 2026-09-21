@@ -56,7 +56,7 @@ const Login = () => {
       setFormError('');
       setLoading(true);
       await login(formData.email, formData.password);
-      navigate('/dashboard');
+      navigate('/');
     } catch (err) {
       console.error(err);
       if (err.code === 'auth/user-not-found' || err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {

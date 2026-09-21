@@ -5,6 +5,8 @@ import path from 'path';
 import connectDB from './config/db.js';
 import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 import profileRoutes from './routes/profileRoutes.js';
+import projectRoutes from './routes/projectRoutes.js';
+import joinRequestRoutes from './routes/joinRequestRoutes.js';
 
 // Load backend env vars
 dotenv.config({ path: path.resolve(import.meta.dirname, '.env') });
@@ -33,6 +35,8 @@ app.get('/api/health', (req, res) => {
 
 // Routes
 app.use('/api/profile', profileRoutes);
+app.use('/api/projects', projectRoutes);
+app.use('/api/join-requests', joinRequestRoutes);
 
 // Error Middleware
 app.use(notFound);

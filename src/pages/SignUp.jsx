@@ -74,7 +74,7 @@ const SignUp = () => {
       setFormError('');
       setLoading(true);
       await signup(formData.email, formData.password, formData.fullName);
-      navigate('/dashboard');
+      navigate('/');
     } catch (err) {
       console.error(err);
       if (err.code === 'auth/email-already-in-use') {
