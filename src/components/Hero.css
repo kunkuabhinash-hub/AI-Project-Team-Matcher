@@ -1,120 +1,347 @@
+/* ── Hero ─────────────────────────────────────────────────── */
 .hero {
   position: relative;
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  text-align: center;
-  padding: 6rem 0 2rem;
+  padding: 80px 0 100px;
   overflow: hidden;
 }
 
-.hero-background {
+.hero::before {
+  content: '';
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  z-index: -1;
-  overflow: hidden;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 60% 40% at 70% 50%, rgba(56, 139, 253, 0.06) 0%, transparent 70%),
+    radial-gradient(ellipse 40% 30% at 30% 30%, rgba(163, 113, 247, 0.05) 0%, transparent 70%);
+  pointer-events: none;
 }
 
-.blob {
+/* Subtle grid */
+.hero::after {
+  content: '';
   position: absolute;
-  border-radius: 50%;
-  filter: blur(80px);
-  opacity: 0.5;
-  animation: float 10s ease-in-out infinite alternate;
+  inset: 0;
+  background-image:
+    linear-gradient(var(--border-muted) 1px, transparent 1px),
+    linear-gradient(90deg, var(--border-muted) 1px, transparent 1px);
+  background-size: 48px 48px;
+  opacity: 0.3;
+  pointer-events: none;
 }
 
-.blob-1 {
-  top: 10%;
-  left: 20%;
-  width: 400px;
-  height: 400px;
-  background: rgba(74, 144, 226, 0.4);
-}
-
-.blob-2 {
-  bottom: 10%;
-  right: 15%;
-  width: 500px;
-  height: 500px;
-  background: rgba(80, 227, 194, 0.3);
-  animation-delay: -5s;
-}
-
-@keyframes float {
-  0% { transform: translate(0, 0) scale(1); }
-  100% { transform: translate(30px, -50px) scale(1.1); }
-}
-
-.hero-content {
-  display: flex;
-  flex-direction: column;
+.hero-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 60px;
   align-items: center;
-  max-width: 800px;
+  position: relative;
+  z-index: 1;
 }
 
-.badge {
-  display: inline-block;
-  padding: 0.5rem 1rem;
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 9999px;
-  font-size: 0.85rem;
+@media (min-width: 900px) {
+  .hero-layout {
+    grid-template-columns: 1fr 1fr;
+    gap: 80px;
+  }
+}
+
+/* Left — Copy */
+.hero-copy {
+  animation: fadeUp 0.5s ease forwards;
+}
+
+.hero-eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  background: var(--blue-muted);
+  border: 1px solid var(--blue-border);
+  border-radius: var(--r-full);
+  font-size: 12px;
   font-weight: 600;
-  color: var(--secondary-color);
-  margin-bottom: 2rem;
+  color: var(--blue);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 24px;
 }
 
-.hero-title {
-  font-size: 3.5rem;
+.hero-eyebrow-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--blue);
+  animation: pulse 2s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+.hero-headline {
+  font-size: 2.5rem;
   font-weight: 800;
-  line-height: 1.1;
-  margin-bottom: 1.5rem;
-  letter-spacing: -1px;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  color: var(--text-primary);
+  margin-bottom: 20px;
 }
 
-.highlight {
-  background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+.hero-headline-accent {
+  background: linear-gradient(135deg, var(--blue) 0%, var(--purple) 100%);
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
-.hero-subtitle {
-  font-size: 1.15rem;
-  color: var(--text-muted);
-  max-width: 600px;
-  margin-bottom: 3rem;
-  line-height: 1.6;
+@media (min-width: 768px) {
+  .hero-headline {
+    font-size: 3rem;
+  }
+}
+
+.hero-subtext {
+  font-size: 16px;
+  color: var(--text-secondary);
+  line-height: 1.7;
+  margin-bottom: 36px;
+  max-width: 440px;
 }
 
 .hero-actions {
   display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.hero-actions .btn-lg {
+  height: 44px;
+  padding: 0 22px;
+  font-size: 14px;
+}
+
+.hero-meta {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-top: 40px;
+  padding-top: 32px;
+  border-top: 1px solid var(--border);
+}
+
+.hero-meta-item {
+  display: flex;
   flex-direction: column;
-  gap: 1rem;
-  width: 100%;
+  gap: 2px;
 }
 
-@media (min-width: 480px) {
-  .hero-actions {
-    flex-direction: row;
-    justify-content: center;
-    width: auto;
-  }
+.hero-meta-value {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text-primary);
 }
 
-.btn-large {
-  padding: 1rem 2rem;
-  font-size: 1.1rem;
+.hero-meta-label {
+  font-size: 12px;
+  color: var(--text-muted);
 }
 
-@media (min-width: 768px) {
-  .hero-title {
-    font-size: 4.5rem;
-  }
-  .hero-subtitle {
-    font-size: 1.25rem;
-  }
+/* Right — Product Visualization */
+.hero-visual {
+  position: relative;
+  animation: fadeUp 0.5s 0.15s ease both;
+}
+
+.hero-visual-inner {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Mock UI components */
+.mock-card {
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  padding: 16px;
+}
+
+.mock-project-card {
+  position: relative;
+}
+
+.mock-project-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--blue);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
+}
+
+.mock-project-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.mock-skill-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-top: 10px;
+}
+
+.mock-skill {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--surface-2);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+  border-radius: var(--r-full);
+}
+
+/* AI Arrow */
+.mock-ai-connector {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0 8px;
+}
+
+.mock-ai-line {
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--purple), transparent);
+}
+
+.mock-ai-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  background: var(--purple-muted);
+  border: 1px solid var(--purple-border);
+  border-radius: var(--r-full);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--purple);
+  white-space: nowrap;
+}
+
+.mock-ai-icon {
+  font-size: 12px;
+}
+
+/* Student cards grid */
+.mock-students {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.mock-student-card {
+  padding: 12px;
+  border-radius: var(--r-md);
+}
+
+.mock-student-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.mock-avatar {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.mock-student-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.mock-score-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.mock-score {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.mock-score-bar {
+  height: 3px;
+  background: var(--surface-2);
+  border-radius: 2px;
+  overflow: hidden;
+  flex: 1;
+  margin: 0 8px;
+}
+
+.mock-score-fill {
+  height: 100%;
+  border-radius: 2px;
+}
+
+/* Team formed card */
+.mock-team-card {
+  background: linear-gradient(135deg, rgba(63,185,80,0.08), rgba(56,139,253,0.06));
+  border-color: var(--green-border);
+}
+
+.mock-team-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.mock-team-title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.mock-team-badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--green);
+  background: var(--green-muted);
+  border: 1px solid var(--green-border);
+  padding: 2px 8px;
+  border-radius: var(--r-full);
+}
+
+.mock-team-avatars {
+  display: flex;
+  gap: -4px;
+}
+
+.mock-team-avatars .mock-avatar {
+  width: 24px;
+  height: 24px;
+  font-size: 10px;
+  margin-left: -4px;
+  border: 2px solid var(--surface-0);
+}
+
+.mock-team-avatars .mock-avatar:first-child {
+  margin-left: 0;
 }

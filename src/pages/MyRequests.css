@@ -1,0 +1,90 @@
+/* ── My Requests Page ─────────────────────────────────────────── */
+.my-requests-page {
+  padding: 32px 0 80px;
+  animation: fadeUp 0.3s ease forwards;
+}
+
+.my-requests-page-header {
+  margin-bottom: 28px;
+}
+
+.my-requests-page-header h1 {
+  font-size: 1.5rem;
+  margin-bottom: 4px;
+}
+
+.my-requests-page-header p {
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.requests-feed {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.request-feed-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  background: var(--surface-0);
+  border: 1px solid var(--border);
+  border-radius: var(--r-lg);
+  transition: border-color var(--transition), box-shadow var(--transition);
+  flex-wrap: wrap;
+}
+
+.request-feed-item:hover {
+  border-color: #444c56;
+  box-shadow: var(--shadow-sm);
+}
+
+.request-feed-item.status-accepted {
+  border-left: 3px solid var(--green);
+}
+
+.request-feed-item.status-rejected {
+  border-left: 3px solid var(--red);
+  opacity: 0.7;
+}
+
+.request-feed-item.status-pending {
+  border-left: 3px solid var(--amber);
+}
+
+.request-feed-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.request-project-link {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-decoration: none;
+  display: block;
+  margin-bottom: 4px;
+  transition: color var(--transition);
+}
+
+.request-project-link:hover {
+  color: var(--blue);
+}
+
+.request-project-category {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 4px;
+}
+
+.request-project-date {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.request-feed-status {
+  flex-shrink: 0;
+}

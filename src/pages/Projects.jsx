@@ -1,16 +1,41 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
+import Navbar from '../components/Navbar';
 import './Projects.css';
+
+const CATEGORIES = ['All', 'Web Development', 'Mobile Development', 'AI / Machine Learning', 'Data Science', 'Cybersecurity', 'Cloud / DevOps', 'Other'];
+
+const getCatClass = (cat) => {
+  const map = {
+    'Web Development': 'cat-web',
+    'Mobile Development': 'cat-mobile',
+    'AI / Machine Learning': 'cat-ai',
+    'Data Science': 'cat-data',
+    'Cybersecurity': 'cat-cyber',
+    'Cloud / DevOps': 'cat-cloud',
+  };
+  return map[cat] || '';
+};
+
+const SkeletonCard = () => (
+  <div className="project-skeleton">
+    <div className="skeleton-line" style={{ height: '18px', width: '40%' }}></div>
+    <div className="skeleton-line" style={{ height: '22px', width: '80%' }}></div>
+    <div className="skeleton-line" style={{ height: '14px', width: '100%' }}></div>
+    <div className="skeleton-line" style={{ height: '14px', width: '60%' }}></div>
+    <div style={{ display: 'flex', gap: '6px', marginTop: '8px' }}>
+      <div className="skeleton-line" style={{ height: '20px', width: '60px' }}></div>
+      <div className="skeleton-line" style={{ height: '20px', width: '50px' }}></div>
+    </div>
+  </div>
+);
 
 const Projects = () => {
   const { currentUser } = useAuth();
-  const navigate = useNavigate();
   const [projects, setProjects] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
-  // Search and Filter State
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
@@ -22,179 +47,157 @@ const Projects = () => {
           const token = await currentUser.getIdToken();
           headers['Authorization'] = `Bearer ${token}`;
         }
-        
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects`, {
-          headers
-        });
-
-        if (!response.ok) {
-          throw new Error('Failed to fetch projects');
-        }
-
+        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects`, { headers });
+        if (!response.ok) throw new Error('Failed to fetch projects');
         const data = await response.json();
         setProjects(data);
       } catch (err) {
-        setError('Error loading projects. Please try again later.');
+        setError('Unable to load projects. Please try again.');
         console.error(err);
       } finally {
         setLoading(false);
       }
     };
-
     fetchProjects();
   }, [currentUser]);
 
-  // Derived state for filtered projects
   const filteredProjects = useMemo(() => {
     return projects.filter(project => {
       const matchCategory = selectedCategory === 'All' || project.category === selectedCategory;
-      
-      const query = searchQuery.toLowerCase();
-      const matchSearch = 
-        project.title.toLowerCase().includes(query) ||
-        project.description.toLowerCase().includes(query) ||
-        project.requiredSkills.some(skill => skill.toLowerCase().includes(query));
-
+      const q = searchQuery.toLowerCase();
+      const matchSearch = !q ||
+        project.title.toLowerCase().includes(q) ||
+        project.description.toLowerCase().includes(q) ||
+        project.requiredSkills.some(s => s.toLowerCase().includes(q));
       return matchCategory && matchSearch;
     });
   }, [projects, searchQuery, selectedCategory]);
 
-  const handleReset = () => {
-    setSearchQuery('');
-    setSelectedCategory('All');
-  };
-
-  if (loading) {
-    return (
-      <div className="projects-page container">
-        <div style={{ textAlign: 'center', marginTop: '4rem' }}>
-          <p>Loading projects...</p>
-        </div>
-      </div>
-    );
-  }
+  const handleReset = () => { setSearchQuery(''); setSelectedCategory('All'); };
 
   return (
-    <div className="projects-page container animate-fade-in">
-      <div style={{ marginBottom: '2rem' }}>
-        <Link to="/" className="btn btn-outline btn-sm">
-          &larr; Back to Home
-        </Link>
-      </div>
+    <>
+      <Navbar />
+      <div className="container projects-page">
 
-      <div className="projects-header">
-        <div>
-          <h2>Discover Projects</h2>
-          <p className="text-muted">Find teams looking for your skills.</p>
-        </div>
-        {currentUser && (
-          <Link to="/create-project" className="btn btn-primary">
-            + Create Project
-          </Link>
-        )}
-      </div>
-
-      <div className="search-filter-bar glass">
-        <input 
-          type="text" 
-          placeholder="Search projects..." 
-          className="search-input"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-        />
-        <select 
-          className="category-filter" 
-          value={selectedCategory}
-          onChange={(e) => setSelectedCategory(e.target.value)}
-        >
-          <option value="All">All Categories</option>
-          <option value="Web Development">Web Development</option>
-          <option value="Mobile Development">Mobile Development</option>
-          <option value="AI / Machine Learning">AI / Machine Learning</option>
-          <option value="Data Science">Data Science</option>
-          <option value="Cybersecurity">Cybersecurity</option>
-          <option value="Cloud / DevOps">Cloud / DevOps</option>
-          <option value="Other">Other</option>
-        </select>
-        {(searchQuery || selectedCategory !== 'All') && (
-          <button className="btn btn-outline btn-sm" onClick={handleReset}>Reset</button>
-        )}
-      </div>
-
-      {error && <div className="alert error">{error}</div>}
-
-      {!error && projects.length === 0 ? (
-        <div className="glass empty-state">
-          <h3>No projects have been created yet.</h3>
-          <p>Be the first to share an idea and find a team!</p>
-          {currentUser ? (
-            <Link to="/create-project" className="btn btn-primary" style={{ marginTop: '1rem' }}>
-              Create a Project
-            </Link>
-          ) : (
-            <Link to="/login" className="btn btn-primary" style={{ marginTop: '1rem' }}>
-              Log In to Create
-            </Link>
+        {/* Header */}
+        <div className="projects-page-header">
+          <div>
+            <h1>Explore Projects</h1>
+            <p>Find projects that match your skills and interests.</p>
+          </div>
+          {currentUser && (
+            <Link to="/create-project" className="btn btn-primary">+ New Project</Link>
           )}
         </div>
-      ) : !error && filteredProjects.length === 0 ? (
-        <div className="glass empty-state">
-          <h3>No projects found.</h3>
-          <p>Try adjusting your search or filters.</p>
-          <button className="btn btn-outline" onClick={handleReset} style={{ marginTop: '1rem' }}>
-            Reset Search
-          </button>
-        </div>
-      ) : (
-        <div className="projects-grid">
-          {filteredProjects.map((project) => (
-            <div key={project._id} className="project-card glass">
-              <div className="project-card-header">
-                <span className="project-category">{project.category}</span>
-                <span className="project-date">
-                  {new Date(project.createdAt).toLocaleDateString()}
-                </span>
-              </div>
-              <h3 className="project-title">{project.title}</h3>
-              <p className="project-description">{project.description}</p>
-              
-              <div className="project-details">
-                <div className="detail-item">
-                  <strong>Team Size:</strong> {project.teamSize} members
-                </div>
-                {project.duration && (
-                  <div className="detail-item">
-                    <strong>Duration:</strong> {project.duration}
-                  </div>
-                )}
-                <div className="detail-item">
-                  <strong>Creator:</strong> {project.creatorName}
-                </div>
-              </div>
 
-              <div className="project-skills">
-                <strong>Required Skills:</strong>
-                <div className="skills-list">
-                  {project.requiredSkills.map((skill, index) => (
-                    <span key={index} className="skill-tag">
-                      {skill}
+        {/* Search + Filter */}
+        <div className="search-bar">
+          <input
+            type="text"
+            placeholder="Search projects, skills, or categories..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)}>
+            {CATEGORIES.map(cat => (
+              <option key={cat} value={cat}>{cat === 'All' ? 'All Categories' : cat}</option>
+            ))}
+          </select>
+          {(searchQuery || selectedCategory !== 'All') && (
+            <button className="btn btn-outline btn-sm" onClick={handleReset}>Reset</button>
+          )}
+        </div>
+
+        {/* Error */}
+        {error && <div className="alert alert-error">{error}</div>}
+
+        {/* Loading Skeletons */}
+        {loading && (
+          <div className="projects-grid">
+            {[...Array(6)].map((_, i) => <SkeletonCard key={i} />)}
+          </div>
+        )}
+
+        {/* Empty States */}
+        {!loading && !error && projects.length === 0 && (
+          <div className="empty-state" style={{ border: '1px dashed var(--border)', borderRadius: 'var(--r-xl)' }}>
+            <div className="empty-state-icon">📁</div>
+            <h3>No projects yet</h3>
+            <p>Be the first to share a project idea and find your team.</p>
+            {currentUser ? (
+              <Link to="/create-project" className="btn btn-primary" style={{ marginTop: '12px' }}>Create the first project</Link>
+            ) : (
+              <Link to="/signup" className="btn btn-primary" style={{ marginTop: '12px' }}>Get started</Link>
+            )}
+          </div>
+        )}
+
+        {!loading && !error && projects.length > 0 && filteredProjects.length === 0 && (
+          <div className="empty-state" style={{ border: '1px dashed var(--border)', borderRadius: 'var(--r-xl)' }}>
+            <div className="empty-state-icon">🔍</div>
+            <h3>No projects match your search</h3>
+            <p>Try different keywords or remove filters.</p>
+            <button className="btn btn-secondary" onClick={handleReset} style={{ marginTop: '12px' }}>Clear filters</button>
+          </div>
+        )}
+
+        {/* Grid */}
+        {!loading && !error && filteredProjects.length > 0 && (
+          <>
+            {searchQuery || selectedCategory !== 'All' ? (
+              <p style={{ fontSize: '13px', color: 'var(--text-muted)', marginBottom: '16px' }}>
+                {filteredProjects.length} project{filteredProjects.length !== 1 ? 's' : ''} found
+              </p>
+            ) : null}
+            <div className="projects-grid">
+              {filteredProjects.map((project) => (
+                <div key={project._id} className="project-card" onClick={() => {}}>
+                  <div className="project-card-top">
+                    <span className={`cat-badge ${getCatClass(project.category)}`}>{project.category}</span>
+                    <span className="project-date-text">
+                      {new Date(project.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </span>
-                  ))}
-                </div>
-              </div>
+                  </div>
 
-              <button 
-                className="btn btn-primary btn-sm view-btn" 
-                onClick={() => navigate(`/projects/${project._id}`)}
-                style={{ marginTop: '1.5rem', width: '100%' }}
-              >
-                View Project
-              </button>
+                  <h3 className="project-card-title">{project.title}</h3>
+                  <p className="project-card-desc">{project.description}</p>
+
+                  <div className="project-card-skills">
+                    {project.requiredSkills.slice(0, 4).map((skill, i) => (
+                      <span key={i} className="skill-tag">{skill}</span>
+                    ))}
+                    {project.requiredSkills.length > 4 && (
+                      <span className="skill-tag">+{project.requiredSkills.length - 4}</span>
+                    )}
+                  </div>
+
+                  <div className="project-card-meta">
+                    <span className="project-meta-item">
+                      <span className="project-meta-icon">👥</span>
+                      {project.teamSize} members
+                    </span>
+                    {project.duration && (
+                      <span className="project-meta-item">
+                        <span className="project-meta-icon">⏱</span>
+                        {project.duration}
+                      </span>
+                    )}
+                  </div>
+
+                  <div className="project-card-footer">
+                    <span className="project-creator">by {project.creatorName}</span>
+                    <Link to={`/projects/${project._id}`} className="project-view-link">
+                      View →
+                    </Link>
+                  </div>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
-    </div>
+          </>
+        )}
+      </div>
+    </>
   );
 };
 

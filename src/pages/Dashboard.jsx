@@ -1,150 +1,114 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import Navbar from '../components/Navbar';
 import './Dashboard.css';
 
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
 const Dashboard = () => {
-  const [error, setError] = useState('');
+  const { currentUser } = useAuth();
   const [completionPercent, setCompletionPercent] = useState(0);
   const [myProjects, setMyProjects] = useState([]);
   const [loading, setLoading] = useState(true);
-  const { currentUser, logout } = useAuth();
-  const navigate = useNavigate();
 
   useEffect(() => {
     const fetchDashboardData = async () => {
       try {
         const token = await currentUser.getIdToken();
-        
-        // Fetch Profile
-        const profileRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/profile`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const profileRes = await fetch(`${API}/api/profile`, { headers: { Authorization: `Bearer ${token}` } });
         if (profileRes.ok) {
           const profileData = await profileRes.json();
-          calculateCompletion(profileData);
+          const fields = ['fullName', 'collegeEmail', 'department', 'year', 'skills', 'interests', 'experience', 'availability'];
+          let filled = 0;
+          fields.forEach(f => {
+            if (Array.isArray(profileData[f]) && profileData[f].length > 0) filled++;
+            else if (typeof profileData[f] === 'string' && profileData[f].trim()) filled++;
+          });
+          setCompletionPercent(Math.round((filled / fields.length) * 100));
         }
-
-        // Fetch Projects
-        const projectsRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects`, {
-          headers: { Authorization: `Bearer ${token}` }
-        });
+        const projectsRes = await fetch(`${API}/api/projects`, { headers: { Authorization: `Bearer ${token}` } });
         if (projectsRes.ok) {
-          const allProjects = await projectsRes.json();
-          const userProjects = allProjects.filter(p => p.creatorFirebaseUid === currentUser.uid);
-          setMyProjects(userProjects);
+          const all = await projectsRes.json();
+          setMyProjects(all.filter(p => p.creatorFirebaseUid === currentUser.uid));
         }
       } catch (err) {
-        console.error('Error fetching dashboard data:', err);
+        console.error('Dashboard fetch error:', err);
       } finally {
         setLoading(false);
       }
     };
-
-    if (currentUser) {
-      fetchDashboardData();
-    }
+    if (currentUser) fetchDashboardData();
   }, [currentUser]);
 
-  const calculateCompletion = (data) => {
-    const fields = ['fullName', 'collegeEmail', 'department', 'year', 'skills', 'interests', 'experience', 'availability'];
-    let filled = 0;
-    
-    fields.forEach(field => {
-      if (Array.isArray(data[field]) && data[field].length > 0) filled++;
-      else if (typeof data[field] === 'string' && data[field].trim() !== '') filled++;
-    });
-
-    setCompletionPercent(Math.round((filled / fields.length) * 100));
-  };
-
-  const handleLogout = async () => {
-    setError('');
-    try {
-      await logout();
-      navigate('/login');
-    } catch (err) {
-      setError('Failed to log out. Please try again.');
-    }
-  };
-
   return (
-    <div className="dashboard-container">
-      <header className="dashboard-header glass">
-        <div className="container dashboard-nav">
-          <div className="navbar-logo">
-            <span className="logo-icon">✨</span>
-            <h1>TeamMatcher AI</h1>
-          </div>
-          <div className="user-profile">
-            <span className="user-email">{currentUser?.email}</span>
-            <button className="btn btn-outline btn-sm" onClick={handleLogout}>
-              Log Out
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <main className="container dashboard-main animate-fade-in">
-        {error && <div className="error-alert">{error}</div>}
-        
-        <div className="welcome-card glass">
-          <h2>Welcome to your Workspace, {currentUser?.displayName || 'Student'}!</h2>
-          <p>This is your personal dashboard to manage your profile and projects.</p>
+    <>
+      <Navbar />
+      <div className="container dashboard-page">
+        <div className="dashboard-header-section">
+          <h1>Dashboard</h1>
+          <p>Welcome back, {currentUser?.displayName || 'Student'}</p>
         </div>
 
-        <div className="dashboard-content" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', marginTop: '2rem' }}>
-          
-          <div className="dashboard-column">
-            <h3>Your Profile Status</h3>
-            <div className="placeholder-card glass" style={{ marginBottom: '1.5rem' }}>
-              <div style={{ marginBottom: '1rem' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                  <span>Completion</span>
-                  <span>{loading ? '...' : `${completionPercent}%`}</span>
-                </div>
-                <div style={{ background: 'rgba(255,255,255,0.1)', height: '8px', borderRadius: '4px', overflow: 'hidden' }}>
-                  <div style={{ background: 'var(--primary-color)', height: '100%', width: `${completionPercent}%`, transition: 'width 0.5s' }}></div>
-                </div>
+        <div className="dashboard-grid">
+          {/* Profile Card */}
+          <div className="dashboard-card">
+            <div className="dashboard-card-title">Profile Completion</div>
+            <div className="dashboard-completion-row">
+              <div className="progress-bar" style={{ flex: 1 }}>
+                <div className="progress-fill" style={{ width: `${completionPercent}%` }}></div>
               </div>
-              <p>Complete your student profile and skills setup to get better AI matches.</p>
-              <button className="btn btn-primary" onClick={() => navigate('/profile')}>Edit Profile</button>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--blue)', flexShrink: 0 }}>
+                {loading ? '—' : `${completionPercent}%`}
+              </span>
             </div>
+            <p style={{ fontSize: '13px', color: 'var(--text-secondary)', margin: '12px 0 16px' }}>
+              Complete your profile to get better AI-powered matches.
+            </p>
+            <Link to="/profile" className="btn btn-secondary btn-sm">Edit Profile</Link>
+          </div>
 
-            <h3>Quick Actions</h3>
-            <div className="placeholder-card glass" style={{ display: 'flex', gap: '1rem' }}>
-              <button className="btn btn-primary" onClick={() => navigate('/create-project')} style={{ flex: 1 }}>Create Project</button>
-              <button className="btn btn-outline" onClick={() => navigate('/projects')} style={{ flex: 1 }}>Explore Projects</button>
+          {/* Quick Actions */}
+          <div className="dashboard-card">
+            <div className="dashboard-card-title">Quick Actions</div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
+              <Link to="/create-project" className="btn btn-primary">+ Create Project</Link>
+              <Link to="/projects"       className="btn btn-secondary">Explore Projects</Link>
+              <Link to="/my-requests"    className="btn btn-secondary">My Requests</Link>
             </div>
           </div>
 
-          <div className="dashboard-column">
-            <h3>Your Projects</h3>
+          {/* My Projects */}
+          <div className="dashboard-card dashboard-card-wide">
+            <div className="dashboard-card-title">Your Projects</div>
             {loading ? (
-              <p>Loading your projects...</p>
+              <div className="loading-state" style={{ padding: '24px' }}>
+                <div className="spinner"></div>
+              </div>
             ) : myProjects.length === 0 ? (
-              <div className="placeholder-card glass text-center">
+              <div className="empty-state" style={{ padding: '32px 0' }}>
                 <p>You haven't created any projects yet.</p>
-                <button className="btn btn-primary btn-sm" onClick={() => navigate('/create-project')} style={{ marginTop: '1rem' }}>Share an Idea</button>
+                <Link to="/create-project" className="btn btn-primary" style={{ marginTop: '12px' }}>Create your first project</Link>
               </div>
             ) : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '12px' }}>
                 {myProjects.map(project => (
-                  <div key={project._id} className="placeholder-card glass" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <div key={project._id} className="dashboard-project-row">
                     <div>
-                      <h4 style={{ margin: '0 0 0.25rem 0', color: 'var(--text-main)' }}>{project.title}</h4>
-                      <span style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>Created {new Date(project.createdAt).toLocaleDateString()}</span>
+                      <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)', marginBottom: '3px' }}>{project.title}</div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                        {project.category} · Created {new Date(project.createdAt).toLocaleDateString()}
+                      </div>
                     </div>
-                    <button className="btn btn-outline btn-sm" onClick={() => navigate(`/projects/${project._id}`)}>View</button>
+                    <Link to={`/projects/${project._id}`} className="btn btn-secondary btn-sm">View →</Link>
                   </div>
                 ))}
               </div>
             )}
           </div>
-
         </div>
-      </main>
-    </div>
+      </div>
+    </>
   );
 };
 

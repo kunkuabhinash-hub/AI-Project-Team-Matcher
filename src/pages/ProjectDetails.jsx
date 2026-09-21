@@ -1,28 +1,37 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import Navbar from '../components/Navbar';
 import './ProjectDetails.css';
+
+const API = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+
+const getCatClass = (cat) => {
+  const map = { 'Web Development': 'cat-web', 'Mobile Development': 'cat-mobile', 'AI / Machine Learning': 'cat-ai', 'Data Science': 'cat-data', 'Cybersecurity': 'cat-cyber', 'Cloud / DevOps': 'cat-cloud' };
+  return map[cat] || '';
+};
+
+const getScoreClass = (score) => score >= 80 ? 'score-high' : score >= 50 ? 'score-medium' : 'score-low';
+const getInitial = (name) => name ? name.charAt(0).toUpperCase() : '?';
 
 const ProjectDetails = () => {
   const { id } = useParams();
   const { currentUser } = useAuth();
+
   const [project, setProject] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  
-  // Join request state
-  const [joinStatus, setJoinStatus] = useState(null); // 'pending', 'accepted', 'rejected', or null
+
+  const [joinStatus, setJoinStatus] = useState(null);
   const [ownerRequests, setOwnerRequests] = useState([]);
   const [requesting, setRequesting] = useState(false);
   const [actionError, setActionError] = useState('');
 
-  // Team state
   const [teamData, setTeamData] = useState(null);
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [isFormingTeam, setIsFormingTeam] = useState(false);
   const [isDeletingTeam, setIsDeletingTeam] = useState(false);
 
-  // AI Matching state
   const [aiRecommendations, setAiRecommendations] = useState(null);
   const [teamCoverage, setTeamCoverage] = useState(null);
   const [skillCoverage, setSkillCoverage] = useState(null);
@@ -33,357 +42,330 @@ const ProjectDetails = () => {
     const fetchProject = async () => {
       try {
         const token = await currentUser.getIdToken();
-        const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects/${id}`, {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
-        });
-
-        if (!response.ok) {
-          if (response.status === 404) {
-            throw new Error('Project not found');
-          }
-          throw new Error('Failed to load project details');
-        }
-
-        const data = await response.json();
+        const res = await fetch(`${API}/api/projects/${id}`, { headers: { Authorization: `Bearer ${token}` } });
+        if (!res.ok) throw new Error(res.status === 404 ? 'Project not found' : 'Failed to load project');
+        const data = await res.json();
         setProject(data);
 
-        // If creator, fetch owner requests, else fetch my requests to find status
         if (data.creatorFirebaseUid === currentUser.uid) {
-          const reqResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects/${id}/join-requests`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (reqResponse.ok) {
-            const reqData = await reqResponse.json();
-            setOwnerRequests(reqData);
-          }
+          const reqRes = await fetch(`${API}/api/projects/${id}/join-requests`, { headers: { Authorization: `Bearer ${token}` } });
+          if (reqRes.ok) setOwnerRequests(await reqRes.json());
         } else {
-          // fetch my requests to see if I already requested
-          const myReqResponse = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/join-requests/my`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (myReqResponse.ok) {
-            const myReqs = await myReqResponse.json();
-            const existingReq = myReqs.find(req => req.projectId._id === id || req.projectId === id);
-            if (existingReq) {
-              setJoinStatus(existingReq.status);
-            }
+          const myRes = await fetch(`${API}/api/join-requests/my`, { headers: { Authorization: `Bearer ${token}` } });
+          if (myRes.ok) {
+            const myReqs = await myRes.json();
+            const existing = myReqs.find(r => r.projectId._id === id || r.projectId === id);
+            if (existing) setJoinStatus(existing.status);
           }
         }
 
-        // Fetch formed team if any
         try {
-          const teamRes = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects/${id}/team`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (teamRes.ok) {
-            const teamInfo = await teamRes.json();
-            setTeamData(teamInfo);
-          }
-        } catch (e) {
-          console.error('Error fetching team:', e);
-        }
+          const teamRes = await fetch(`${API}/api/projects/${id}/team`, { headers: { Authorization: `Bearer ${token}` } });
+          if (teamRes.ok) setTeamData(await teamRes.json());
+        } catch (e) { console.error('Team fetch error:', e); }
+
       } catch (err) {
         setError(err.message || 'Error loading project');
-        console.error(err);
       } finally {
         setLoading(false);
       }
     };
-
-    if (currentUser && id) {
-      fetchProject();
-    }
+    if (currentUser && id) fetchProject();
   }, [currentUser, id]);
 
   const handleRequestJoin = async () => {
-    setRequesting(true);
-    setActionError('');
+    setRequesting(true); setActionError('');
     try {
       const token = await currentUser.getIdToken();
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects/${id}/join`, {
+      const res = await fetch(`${API}/api/projects/${id}/join`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        }
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Failed to send request');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to send request');
       setJoinStatus('pending');
-    } catch (err) {
-      setActionError(err.message);
-    } finally {
-      setRequesting(false);
-    }
+    } catch (err) { setActionError(err.message); }
+    finally { setRequesting(false); }
   };
 
   const handleUpdateStatus = async (requestId, status) => {
     setActionError('');
     try {
       const token = await currentUser.getIdToken();
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/join-requests/${requestId}/status`, {
+      const res = await fetch(`${API}/api/join-requests/${requestId}/status`, {
         method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ status })
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Failed to update request');
-      
-      // Update local state
-      setOwnerRequests(prev => prev.map(req => req._id === requestId ? { ...req, status } : req));
-    } catch (err) {
-      setActionError(err.message);
-    }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to update request');
+      setOwnerRequests(prev => prev.map(r => r._id === requestId ? { ...r, status } : r));
+    } catch (err) { setActionError(err.message); }
   };
 
   const handleToggleStudent = (studentId) => {
-    setSelectedStudents(prev => 
+    setSelectedStudents(prev =>
       prev.includes(studentId) ? prev.filter(id => id !== studentId) : [...prev, studentId]
     );
   };
 
   const handleFormTeam = async () => {
-    setIsFormingTeam(true);
-    setActionError('');
+    setIsFormingTeam(true); setActionError('');
     try {
       const token = await currentUser.getIdToken();
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects/${id}/team`, {
+      const res = await fetch(`${API}/api/projects/${id}/team`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ selectedStudentIds: selectedStudents })
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.message || 'Failed to form team');
-      
-      setTeamData(data); // Team successfully formed
-    } catch (err) {
-      setActionError(err.message);
-    } finally {
-      setIsFormingTeam(false);
-    }
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to form team');
+      setTeamData(data);
+    } catch (err) { setActionError(err.message); }
+    finally { setIsFormingTeam(false); }
   };
 
   const handleDeleteTeam = async () => {
-    if (!window.confirm("Are you sure you want to delete this team?")) return;
-    setIsDeletingTeam(true);
-    setActionError('');
+    if (!window.confirm('Are you sure you want to dissolve this team?')) return;
+    setIsDeletingTeam(true); setActionError('');
     try {
       const token = await currentUser.getIdToken();
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/projects/${id}/team`, {
+      const res = await fetch(`${API}/api/projects/${id}/team`, {
         method: 'DELETE',
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` }
       });
-      if (!response.ok) {
-        const data = await response.json();
-        throw new Error(data.message || 'Failed to delete team');
-      }
-      setTeamData(null);
-      setSelectedStudents([]);
-    } catch (err) {
-      setActionError(err.message);
-    } finally {
-      setIsDeletingTeam(false);
-    }
+      if (!res.ok) { const d = await res.json(); throw new Error(d.message || 'Failed to delete team'); }
+      setTeamData(null); setSelectedStudents([]);
+    } catch (err) { setActionError(err.message); }
+    finally { setIsDeletingTeam(false); }
   };
 
   const handleFindTeam = async () => {
-    setIsMatching(true);
-    setMatchError('');
-    setAiRecommendations(null);
-    setTeamCoverage(null);
-    setSkillCoverage(null);
+    setIsMatching(true); setMatchError(''); setAiRecommendations(null); setTeamCoverage(null); setSkillCoverage(null);
     try {
       const token = await currentUser.getIdToken();
-      const response = await fetch(`${import.meta.env.VITE_API_URL || 'http://localhost:5000'}/api/ai/match/${id}`, {
+      const res = await fetch(`${API}/api/ai/match/${id}`, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        }
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }
       });
-      
-      const data = await response.json();
-      
-      if (!response.ok) {
-        if (response.status === 401) throw new Error('Please log in again.');
-        if (response.status === 403) throw new Error('You are not authorized to find a team for this project.');
-        if (response.status === 404) throw new Error('Project not found.');
-        if (response.status === 503) throw new Error('AI matching service is currently unavailable. Please try again later.');
-        throw new Error('Unable to generate team recommendations. Please try again.');
+      const data = await res.json();
+      if (!res.ok) {
+        if (res.status === 401) throw new Error('Please log in again.');
+        if (res.status === 403) throw new Error('Only project owners can run AI matching.');
+        if (res.status === 404) throw new Error('Project not found.');
+        if (res.status === 503) throw new Error('AI matching service is unavailable. Please try again later.');
+        throw new Error(data.message || 'Unable to generate recommendations. Please try again.');
       }
-      
       setAiRecommendations(data.recommendations || []);
       setTeamCoverage(data.teamCoverage || null);
       setSkillCoverage(data.skillCoverage || null);
-    } catch (err) {
-      setMatchError(err.message || 'Unable to generate team recommendations. Please try again.');
-    } finally {
-      setIsMatching(false);
-    }
+    } catch (err) { setMatchError(err.message); }
+    finally { setIsMatching(false); }
   };
+
+  const isOwner = project && currentUser && project.creatorFirebaseUid === currentUser.uid;
 
   if (loading) {
     return (
-      <div className="project-details-page container">
-        <div style={{ textAlign: 'center', marginTop: '4rem' }}>
-          <p>Loading project details...</p>
+      <>
+        <Navbar />
+        <div className="container project-details-page">
+          <div className="loading-state">
+            <div className="spinner"></div>
+            <p>Loading project...</p>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   if (error) {
     return (
-      <div className="project-details-page container animate-fade-in">
-        <div style={{ marginBottom: '2rem', display: 'flex', gap: '1rem' }}>
-          <Link to="/" className="btn btn-outline btn-sm">
-            &larr; Back to Home
-          </Link>
-          <Link to="/projects" className="btn btn-outline btn-sm">
-            &larr; Back to Projects
-          </Link>
+      <>
+        <Navbar />
+        <div className="container project-details-page">
+          <div className="breadcrumb">
+            <Link to="/">Home</Link><span className="breadcrumb-sep">/</span>
+            <Link to="/projects">Projects</Link>
+          </div>
+          <div className="section-card" style={{ textAlign: 'center', padding: '60px 24px' }}>
+            <p style={{ fontSize: '36px', marginBottom: '16px' }}>🔍</p>
+            <h2 style={{ marginBottom: '8px', color: 'var(--text-primary)' }}>{error}</h2>
+            <p>The project may have been deleted or you may not have access.</p>
+            <Link to="/projects" className="btn btn-secondary" style={{ marginTop: '20px' }}>Back to Projects</Link>
+          </div>
         </div>
-        <div className="glass" style={{ padding: '3rem', textAlign: 'center' }}>
-          <h2 style={{ color: 'var(--accent-color)' }}>{error}</h2>
-          <p>The project you are looking for may have been deleted.</p>
-        </div>
-      </div>
+      </>
     );
   }
 
-  return (
-    <div className="project-details-page container animate-fade-in">
-      <div style={{ marginBottom: '2rem', display: 'flex', gap: '1rem' }}>
-        <Link to="/" className="btn btn-outline btn-sm">
-          &larr; Back to Home
-        </Link>
-        <Link to="/projects" className="btn btn-outline btn-sm">
-          &larr; Back to Projects
-        </Link>
-      </div>
-      
-      {actionError && <div className="alert error" style={{ marginBottom: '1rem' }}>{actionError}</div>}
+  const maxReached = selectedStudents.length + 1 >= project.teamSize;
 
-      <div className="glass project-full-card">
-        <div className="project-header">
-          <div>
-            <span className="project-category">{project.category}</span>
-            <h1 className="project-title-large">{project.title}</h1>
-            <p className="project-date">
-              Posted on {new Date(project.createdAt).toLocaleDateString()} by {project.creatorName}
-            </p>
-          </div>
-          
-          <div className="project-actions">
-            {project.creatorFirebaseUid === currentUser.uid && (
-              <button 
-                className="btn btn-primary ai-match-btn" 
-                onClick={handleFindTeam} 
-                disabled={isMatching}
-              >
-                {isMatching ? 'Finding the best team...' : 'Find My Team'}
-              </button>
-            )}
-            {project.creatorFirebaseUid !== currentUser.uid && (
-              <>
-                {!joinStatus && (
-                  <button className="btn btn-primary" onClick={handleRequestJoin} disabled={requesting}>
-                    {requesting ? 'Sending...' : 'Request to Join'}
-                  </button>
-                )}
-                {joinStatus === 'pending' && <span className="status-badge pending">Request Pending</span>}
-                {joinStatus === 'accepted' && <span className="status-badge accepted">Request Accepted</span>}
-                {joinStatus === 'rejected' && <span className="status-badge rejected">Request Rejected</span>}
-              </>
-            )}
-          </div>
+  return (
+    <>
+      <Navbar />
+      <div className="container project-details-page">
+
+        {/* Breadcrumb */}
+        <div className="breadcrumb">
+          <Link to="/">Home</Link>
+          <span className="breadcrumb-sep">/</span>
+          <Link to="/projects">Projects</Link>
+          <span className="breadcrumb-sep">/</span>
+          <span style={{ color: 'var(--text-secondary)' }}>{project.title}</span>
         </div>
 
-        <div className="project-body">
-          <div className="project-main-col">
-            <section className="detail-section">
-              <h3>Description</h3>
-              <p style={{ whiteSpace: 'pre-wrap', lineHeight: '1.6' }}>{project.description}</p>
-            </section>
+        {actionError && <div className="alert alert-error" style={{ marginBottom: '16px' }}>{actionError}</div>}
 
-            <section className="detail-section">
-              <h3>Required Skills</h3>
-              <div className="skills-list">
-                {project.requiredSkills.map((skill, index) => (
-                  <span key={index} className="skill-tag">
-                    {skill}
-                  </span>
-                ))}
-              </div>
-            </section>
+        <div className="workspace-layout">
 
-            {teamData && (
-              <section className="detail-section project-team-section">
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem' }}>
-                  <h3>Project Team</h3>
-                  <div className="team-size-indicator">
-                    {teamData.memberStudentIds.length} / {project.teamSize} members
+          {/* ── Main Column ── */}
+          <div className="workspace-main">
+
+            {/* Project Header */}
+            <div className="project-header-card">
+              <div className="project-header-top">
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="project-header-meta">
+                    <span className={`cat-badge ${getCatClass(project.category)}`}>{project.category}</span>
+                  </div>
+                  <h1 className="project-title">{project.title}</h1>
+                  <div className="project-byline">
+                    Posted by {project.creatorName} · {new Date(project.createdAt).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
                   </div>
                 </div>
-                
+
+                <div className="project-header-actions">
+                  {isOwner && !teamData && (
+                    <button className="btn btn-ai btn-lg" onClick={handleFindTeam} disabled={isMatching}>
+                      {isMatching ? (
+                        <><span className="spinner" style={{ width: '14px', height: '14px', borderWidth: '2px' }}></span> Finding...</>
+                      ) : (
+                        <>✦ Find My Team</>
+                      )}
+                    </button>
+                  )}
+                  {!isOwner && (
+                    <>
+                      {!joinStatus && (
+                        <button className="btn btn-primary" onClick={handleRequestJoin} disabled={requesting}>
+                          {requesting ? 'Sending...' : 'Request to Join'}
+                        </button>
+                      )}
+                      {joinStatus === 'pending'  && <span className="status-badge pending">Request Pending</span>}
+                      {joinStatus === 'accepted' && <span className="status-badge accepted">Request Accepted</span>}
+                      {joinStatus === 'rejected' && <span className="status-badge rejected">Request Rejected</span>}
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Description */}
+            <div className="section-card">
+              <div className="section-card-title">Description</div>
+              <p className="project-description-text">{project.description}</p>
+            </div>
+
+            {/* Required Skills */}
+            <div className="section-card">
+              <div className="section-card-title">Required Skills</div>
+              <div className="skills-list">
+                {project.requiredSkills.map((skill, i) => (
+                  <span key={i} className="skill-tag skill-tag-blue">{skill}</span>
+                ))}
+              </div>
+            </div>
+
+            {/* ── Formed Team ── */}
+            {teamData && (
+              <div className="team-section">
+                <div className="team-section-header">
+                  <div className="team-section-title">
+                    <span>👥</span> Project Team
+                  </div>
+                  <span className="team-formed-badge">
+                    {teamData.memberStudentIds.length} / {project.teamSize} members
+                  </span>
+                </div>
+
                 <div className="team-members-grid">
-                  <div className="glass team-member-card owner-card">
-                    <div className="member-badge">Owner</div>
-                    <h4>{teamData.ownerStudentId.fullName}</h4>
-                    <p className="text-muted small">Experience: {teamData.ownerStudentId.experience || 'Not specified'}</p>
-                    <div className="skills-list small" style={{ marginTop: '0.5rem' }}>
-                      {teamData.ownerStudentId.skills && teamData.ownerStudentId.skills.map((s, i) => (
+                  {/* Owner */}
+                  <div className="team-member-card owner-card">
+                    <div className="team-member-header">
+                      <div className="team-member-avatar owner-avatar">
+                        {getInitial(teamData.ownerStudentId.fullName)}
+                      </div>
+                      <div>
+                        <div className="team-member-name">{teamData.ownerStudentId.fullName}</div>
+                        <div className="team-member-role">Project Owner</div>
+                      </div>
+                    </div>
+                    {teamData.ownerStudentId.experience && (
+                      <div className="team-member-detail">{teamData.ownerStudentId.experience.substring(0, 60)}{teamData.ownerStudentId.experience.length > 60 ? '...' : ''}</div>
+                    )}
+                    <div className="skills-list" style={{ marginTop: '8px' }}>
+                      {(teamData.ownerStudentId.skills || []).slice(0, 4).map((s, i) => (
                         <span key={i} className="skill-tag">{s}</span>
                       ))}
                     </div>
                   </div>
-                  
-                  {teamData.memberStudentIds.filter(m => m._id !== teamData.ownerStudentId._id).map((member) => (
-                    <div key={member._id} className="glass team-member-card">
-                      <h4>{member.fullName}</h4>
-                      <p className="text-muted small">Experience: {member.experience || 'Not specified'}</p>
-                      <div className="skills-list small" style={{ marginTop: '0.5rem' }}>
-                        {member.skills && member.skills.map((s, i) => (
-                          <span key={i} className="skill-tag">{s}</span>
-                        ))}
+
+                  {/* Members (excluding owner) */}
+                  {teamData.memberStudentIds
+                    .filter(m => m._id !== teamData.ownerStudentId._id)
+                    .map((member) => (
+                      <div key={member._id} className="team-member-card">
+                        <div className="team-member-header">
+                          <div className="team-member-avatar">{getInitial(member.fullName)}</div>
+                          <div>
+                            <div className="team-member-name">{member.fullName}</div>
+                            <div className="team-member-role">Team Member</div>
+                          </div>
+                        </div>
+                        {member.experience && (
+                          <div className="team-member-detail">{member.experience.substring(0, 60)}{member.experience.length > 60 ? '...' : ''}</div>
+                        )}
+                        <div className="skills-list" style={{ marginTop: '8px' }}>
+                          {(member.skills || []).slice(0, 4).map((s, i) => (
+                            <span key={i} className="skill-tag">{s}</span>
+                          ))}
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    ))}
                 </div>
-                
-                {project.creatorFirebaseUid === currentUser.uid && (
-                  <div style={{ marginTop: '1.5rem', textAlign: 'right' }}>
-                    <button className="btn btn-outline" style={{ color: 'var(--accent-color)', borderColor: 'var(--accent-color)' }} onClick={handleDeleteTeam} disabled={isDeletingTeam}>
-                      {isDeletingTeam ? 'Deleting...' : 'Delete Team'}
+
+                {isOwner && (
+                  <div className="team-section-footer">
+                    <button className="btn btn-danger btn-sm" onClick={handleDeleteTeam} disabled={isDeletingTeam}>
+                      {isDeletingTeam ? 'Dissolving...' : 'Dissolve Team'}
                     </button>
                   </div>
                 )}
-              </section>
+              </div>
             )}
 
-            {project.creatorFirebaseUid === currentUser.uid && !teamData && (
+            {/* ── AI Matching (Owner only, no team yet) ── */}
+            {isOwner && !teamData && (
               <>
-                <section className="detail-section ai-recommendation-section">
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h3>AI Recommended Team</h3>
+                <div className="ai-section-card">
+                  <div className="ai-section-header">
+                    <div className="ai-section-title-group">
+                      <div className="ai-icon">✦</div>
+                      <div>
+                        <div className="ai-section-label">AI Team Recommendations</div>
+                        <div className="ai-section-sublabel">Students ranked by compatibility with this project</div>
+                      </div>
+                    </div>
+
                     {aiRecommendations && aiRecommendations.length > 0 && (
-                      <div className="team-formation-controls">
-                        <span style={{ marginRight: '1rem', fontSize: '0.9rem' }}>
-                          Selected: {selectedStudents.length + 1} / {project.teamSize}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>
+                          Selected: <strong style={{ color: 'var(--text-primary)' }}>{selectedStudents.length + 1}</strong> / {project.teamSize}
                         </span>
-                        <button 
+                        <button
                           className="btn btn-primary btn-sm"
-                          disabled={selectedStudents.length + 1 > project.teamSize || isFormingTeam}
+                          disabled={selectedStudents.length + 1 > project.teamSize || isFormingTeam || selectedStudents.length === 0}
                           onClick={handleFormTeam}
                         >
                           {isFormingTeam ? 'Forming...' : 'Form Team'}
@@ -391,202 +373,259 @@ const ProjectDetails = () => {
                       </div>
                     )}
                   </div>
-                  
-                  {matchError && (
-                    <div className="alert error" style={{ marginBottom: '1rem' }}>
-                      {matchError}
-                    </div>
-                  )}
-                  
-                  {isMatching && (
-                    <div className="ai-loading-state">
-                      <div className="spinner"></div>
-                      <p>Finding the best team...</p>
-                    </div>
-                  )}
 
-                  {aiRecommendations !== null && !isMatching && (
-                    aiRecommendations.length === 0 ? (
-                      <p className="text-muted">No students have been recommended yet.</p>
-                    ) : (
+                  <div className="ai-section-body">
+                    {/* Error */}
+                    {matchError && <div className="alert alert-error">{matchError}</div>}
+
+                    {/* Loading */}
+                    {isMatching && (
+                      <div className="ai-loading">
+                        <div className="ai-loading-spinner"></div>
+                        <p>Analyzing student profiles against project requirements...</p>
+                        <p className="ai-loading-hint">This may take a few seconds</p>
+                      </div>
+                    )}
+
+                    {/* Idle */}
+                    {!isMatching && aiRecommendations === null && !matchError && (
+                      <div className="ai-idle-prompt">
+                        <div style={{ fontSize: '32px' }}>✦</div>
+                        <p>Click <strong>Find My Team</strong> to discover students whose skills, interests, and experience match this project.</p>
+                      </div>
+                    )}
+
+                    {/* Results */}
+                    {!isMatching && aiRecommendations !== null && (
                       <>
-                        {teamCoverage && (
-                          <div className="glass team-coverage-card">
-                            <h4>Team Skill Coverage</h4>
-                            
-                            {teamCoverage.requiredSkills.length === 0 ? (
-                              <p className="text-muted">No required skills were specified for this project.</p>
-                            ) : (
-                              <>
-                                <div className="coverage-header">
-                                  <span>Coverage:</span>
-                                  <strong>{teamCoverage.coveragePercentage}%</strong>
-                                </div>
-                                <div className="coverage-track">
-                                  <div 
-                                    className="coverage-fill" 
-                                    style={{ width: `${teamCoverage.coveragePercentage}%` }}
-                                  ></div>
-                                </div>
-                                
-                                {teamCoverage.missingSkills.length === 0 ? (
-                                  <p className="text-success" style={{ margin: '1rem 0' }}>All required project skills are covered by the recommended team.</p>
-                                ) : (
-                                  <div className="coverage-lists">
-                                    <div className="coverage-list-col">
-                                      <strong>Covered Skills:</strong>
-                                      <ul className="covered-skill-list">
-                                        {teamCoverage.coveredSkills.map(skill => (
-                                          <li key={skill} className="covered-skill">✓ {skill}</li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                    <div className="coverage-list-col">
-                                      <strong>Missing Skills:</strong>
-                                      <ul className="missing-skill-list">
-                                        {teamCoverage.missingSkills.map(skill => (
-                                          <li key={skill} className="missing-skill">⚠ {skill}</li>
-                                        ))}
-                                      </ul>
-                                    </div>
-                                  </div>
-                                )}
+                        {/* Team Skill Coverage */}
+                        {teamCoverage && teamCoverage.requiredSkills.length > 0 && (
+                          <div className="coverage-card">
+                            <div className="coverage-card-header">
+                              <span className="coverage-card-title">Team Skill Coverage</span>
+                              <span className="coverage-percent">{teamCoverage.coveragePercentage}%</span>
+                            </div>
+                            <div className="coverage-bar-track">
+                              <div
+                                className="coverage-bar-fill"
+                                style={{
+                                  width: `${teamCoverage.coveragePercentage}%`,
+                                  background: teamCoverage.coveragePercentage >= 80
+                                    ? 'var(--green)'
+                                    : teamCoverage.coveragePercentage >= 50
+                                    ? 'var(--amber)'
+                                    : 'var(--red)',
+                                }}
+                              ></div>
+                            </div>
 
-                                {skillCoverage && skillCoverage.length > 0 && (
-                                  <div className="skill-ownership">
-                                    <strong style={{display: 'block', marginBottom: '0.5rem'}}>Skill Ownership:</strong>
-                                    {skillCoverage.map(sc => (
-                                      <div key={sc.skill} className="ownership-row">
-                                        <span className="ownership-skill">{sc.skill}</span>
-                                        <span className="ownership-arrow">→</span>
-                                        <span className="ownership-students">
-                                          {sc.covered 
-                                            ? sc.students.map(s => s.studentName).join(', ') 
-                                            : <span className="text-muted">No one</span>}
-                                        </span>
+                            <div className="skill-coverage-list">
+                              {skillCoverage && skillCoverage.map(sc => (
+                                <div key={sc.skill} className="skill-coverage-row">
+                                  <span className="skill-coverage-name">{sc.skill}</span>
+                                  {sc.covered ? (
+                                    <div className="skill-coverage-status skill-covered">
+                                      <span>✓</span>
+                                      <span>{sc.students && sc.students.length > 0 ? sc.students.map(s => s.studentName).join(', ') : 'Covered'}</span>
+                                    </div>
+                                  ) : (
+                                    <div className="skill-coverage-status skill-missing">
+                                      <span>○</span>
+                                      <span>Missing</span>
+                                    </div>
+                                  )}
+                                </div>
+                              ))}
+                              {!skillCoverage && teamCoverage.coveredSkills.map(skill => (
+                                <div key={skill} className="skill-coverage-row">
+                                  <span className="skill-coverage-name">{skill}</span>
+                                  <div className="skill-coverage-status skill-covered"><span>✓</span> Covered</div>
+                                </div>
+                              ))}
+                              {!skillCoverage && teamCoverage.missingSkills.map(skill => (
+                                <div key={skill} className="skill-coverage-row">
+                                  <span className="skill-coverage-name">{skill}</span>
+                                  <div className="skill-coverage-status skill-missing"><span>○</span> Missing</div>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {/* Recommendation Cards */}
+                        {aiRecommendations.length === 0 ? (
+                          <div className="empty-state">
+                            <div className="empty-state-icon">👤</div>
+                            <h3>No matching students found</h3>
+                            <p>There are no students with matching profiles yet. Encourage more students to complete their profiles.</p>
+                          </div>
+                        ) : (
+                          <div className="recommendations-grid">
+                            {aiRecommendations.map((rec, index) => {
+                              const isSelected = selectedStudents.includes(rec.studentId);
+                              const canSelect = isSelected || !maxReached;
+                              return (
+                                <div
+                                  key={index}
+                                  className={`rec-card ${isSelected ? 'selected' : ''} ${!canSelect && !isSelected ? 'disabled-select' : ''}`}
+                                  onClick={() => canSelect && handleToggleStudent(rec.studentId)}
+                                >
+                                  <div className="rec-card-header">
+                                    <div className="rec-card-left">
+                                      <input
+                                        type="checkbox"
+                                        className="rec-checkbox"
+                                        checked={isSelected}
+                                        onChange={() => canSelect && handleToggleStudent(rec.studentId)}
+                                        disabled={!canSelect}
+                                        onClick={e => e.stopPropagation()}
+                                      />
+                                      <div className="rec-avatar">{getInitial(rec.studentName || '')}</div>
+                                      <div>
+                                        <div className="rec-name">{rec.studentName || rec.studentId}</div>
+                                        {rec.experience && (
+                                          <div className="rec-meta">{rec.experience}</div>
+                                        )}
                                       </div>
-                                    ))}
+                                    </div>
+
+                                    <div className="rec-score-container">
+                                      <span className={`rec-score-badge ${getScoreClass(rec.matchScore)}`}>
+                                        {rec.matchScore}%
+                                      </span>
+                                      <span className="rec-score-label">match</span>
+                                    </div>
                                   </div>
-                                )}
+
+                                  <div className="rec-body">
+                                    {rec.matchedSkills && rec.matchedSkills.length > 0 && (
+                                      <div>
+                                        <div className="rec-group-label">Matched Skills</div>
+                                        <div className="skills-list">
+                                          {rec.matchedSkills.map((s, i) => (
+                                            <span key={i} className="skill-tag skill-tag-green">{s}</span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {rec.matchingReasons && rec.matchingReasons.length > 0 && (
+                                      <div>
+                                        <div className="rec-group-label">Why they match</div>
+                                        <ul className="rec-reasons-list">
+                                          {rec.matchingReasons.map((reason, i) => (
+                                            <li key={i}>{reason}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+
+                                    {rec.skillGaps && rec.skillGaps.length > 0 && (
+                                      <div>
+                                        <div className="rec-group-label">Skill Gaps</div>
+                                        <ul className="rec-gaps-list">
+                                          {rec.skillGaps.map((gap, i) => (
+                                            <li key={i}>{gap}</li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+
+                                    <div className="rec-extra">
+                                      {rec.availability && (
+                                        <div className="rec-extra-item">
+                                          <span className="rec-extra-label">Availability</span>
+                                          <span className="rec-extra-value">{rec.availability}</span>
+                                        </div>
+                                      )}
+                                    </div>
+                                  </div>
+                                </div>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </>
+                    )}
+                  </div>
+                </div>
+
+                {/* Join Requests */}
+                <div className="section-card">
+                  <div className="section-card-title">Join Requests</div>
+                  {ownerRequests.length === 0 ? (
+                    <div className="empty-state" style={{ padding: '32px 0' }}>
+                      <p>No join requests yet.</p>
+                    </div>
+                  ) : (
+                    <div className="requests-list">
+                      {ownerRequests.map(req => (
+                        <div key={req._id} className="request-item">
+                          <div className="request-info">
+                            <div className="request-student-name">{req.studentName}</div>
+                            <div className="request-student-email">{req.studentEmail}</div>
+                          </div>
+                          <div className="request-actions">
+                            <span className={`status-badge ${req.status}`}>{req.status}</span>
+                            {req.status === 'pending' && (
+                              <>
+                                <button className="btn btn-sm btn-primary" onClick={() => handleUpdateStatus(req._id, 'accepted')}>Accept</button>
+                                <button className="btn btn-sm btn-danger"  onClick={() => handleUpdateStatus(req._id, 'rejected')}>Reject</button>
                               </>
                             )}
                           </div>
-                        )}
-                        <div className="recommendations-list">
-                        {aiRecommendations.map((rec, index) => {
-                          const isSelected = selectedStudents.includes(rec.studentId);
-                          return (
-                          <div key={index} className={`glass recommendation-card ${isSelected ? 'selected' : ''}`}>
-                            <div className="rec-header">
-                              <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                <input 
-                                  type="checkbox" 
-                                  className="team-select-checkbox"
-                                  checked={isSelected}
-                                  onChange={() => handleToggleStudent(rec.studentId)}
-                                  disabled={!isSelected && (selectedStudents.length + 1 >= project.teamSize)}
-                                />
-                                <h4 style={{ margin: 0 }}>{rec.studentName || rec.studentId}</h4>
-                              </div>
-                              <div className="match-score">
-                                {rec.matchScore}% Match
-                              </div>
-                            </div>
-                            
-                            <div className="rec-body">
-                              <div className="rec-group">
-                                <strong>Matched Skills</strong>
-                                <div className="skills-list small">
-                                  {rec.matchedSkills && rec.matchedSkills.length > 0 
-                                    ? rec.matchedSkills.map((s, i) => <span key={i} className="skill-tag">{s}</span>)
-                                    : <span className="text-muted">None listed</span>}
-                                </div>
-                              </div>
-
-                              <div className="rec-group">
-                                <strong>Why this student matches</strong>
-                                <ul>
-                                  {rec.matchingReasons && rec.matchingReasons.length > 0 
-                                    ? rec.matchingReasons.map((reason, i) => <li key={i}>{reason}</li>)
-                                    : <li className="text-muted">No specific reasons provided</li>}
-                                </ul>
-                              </div>
-
-                              {rec.skillGaps && rec.skillGaps.length > 0 && (
-                                <div className="rec-group">
-                                  <strong>Skill Gaps</strong>
-                                  <ul>
-                                    {rec.skillGaps.map((gap, i) => <li key={i}>{gap}</li>)}
-                                  </ul>
-                                </div>
-                              )}
-
-                              <div style={{ marginTop: '0.5rem', color: 'var(--text-main)', fontSize: '0.9rem' }}>
-                                <div><strong>Experience:</strong> {rec.experience || 'Not specified'}</div>
-                                <div><strong>Availability:</strong> {rec.availability || 'Not specified'}</div>
-                              </div>
-                            </div>
-                          </div>
-                          )
-                        })}
-                      </div>
-                    </>
-                    )
-                  )}
-                  {aiRecommendations === null && !isMatching && !matchError && (
-                     <p className="text-muted">Click "Find My Team" to discover students with matching skills.</p>
-                  )}
-                </section>
-
-                <section className="detail-section">
-                  <h3>Join Requests</h3>
-                {ownerRequests.length === 0 ? (
-                  <p className="text-muted">No join requests yet.</p>
-                ) : (
-                  <div className="requests-list" style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                    {ownerRequests.map(req => (
-                      <div key={req._id} className="glass request-card" style={{ padding: '1rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                        <div>
-                          <strong>{req.studentName}</strong>
-                          <div className="text-muted" style={{ fontSize: '0.85rem' }}>{req.studentEmail}</div>
-                          <div style={{ fontSize: '0.85rem', marginTop: '0.25rem' }}>
-                            Status: <span className={`status-text ${req.status}`}>{req.status}</span>
-                          </div>
                         </div>
-                        {req.status === 'pending' && (
-                          <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <button className="btn btn-primary btn-sm" onClick={() => handleUpdateStatus(req._id, 'accepted')}>Accept</button>
-                            <button className="btn btn-outline btn-sm" onClick={() => handleUpdateStatus(req._id, 'rejected')}>Reject</button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </section>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </>
             )}
           </div>
 
-          <div className="project-sidebar">
-            <div className="glass sidebar-card">
-              <h3>At a Glance</h3>
-              <ul className="sidebar-list">
-                <li>
-                  <strong>Team Size:</strong> {project.teamSize} members
+          {/* ── Sidebar ── */}
+          <div className="workspace-sidebar">
+            <div className="sidebar-info-card">
+              <div className="sidebar-info-card-header">
+                <h3>Project Details</h3>
+              </div>
+              <ul className="sidebar-info-list">
+                <li className="sidebar-info-item">
+                  <span className="sidebar-info-icon">👥</span>
+                  <div>
+                    <div className="sidebar-info-label">Team Size</div>
+                    <div className="sidebar-info-value">{project.teamSize} members</div>
+                  </div>
                 </li>
-                <li>
-                  <strong>Duration:</strong> {project.duration || 'Not specified'}
+                {project.duration && (
+                  <li className="sidebar-info-item">
+                    <span className="sidebar-info-icon">⏱</span>
+                    <div>
+                      <div className="sidebar-info-label">Duration</div>
+                      <div className="sidebar-info-value">{project.duration}</div>
+                    </div>
+                  </li>
+                )}
+                <li className="sidebar-info-item">
+                  <span className="sidebar-info-icon">📂</span>
+                  <div>
+                    <div className="sidebar-info-label">Category</div>
+                    <div className="sidebar-info-value">{project.category}</div>
+                  </div>
                 </li>
-                <li>
-                  <strong>Category:</strong> {project.category}
+                <li className="sidebar-info-item">
+                  <span className="sidebar-info-icon">👤</span>
+                  <div>
+                    <div className="sidebar-info-label">Created by</div>
+                    <div className="sidebar-info-value">{project.creatorName}</div>
+                  </div>
                 </li>
               </ul>
             </div>
           </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
