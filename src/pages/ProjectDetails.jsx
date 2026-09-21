@@ -16,6 +16,11 @@ const ProjectDetails = () => {
   const [requesting, setRequesting] = useState(false);
   const [actionError, setActionError] = useState('');
 
+  // AI Matching state
+  const [aiRecommendations, setAiRecommendations] = useState(null);
+  const [isMatching, setIsMatching] = useState(false);
+  const [matchError, setMatchError] = useState('');
+
   useEffect(() => {
     const fetchProject = async () => {
       try {
@@ -115,6 +120,38 @@ const ProjectDetails = () => {
     }
   };
 
+  const handleFindTeam = async () => {
+    setIsMatching(true);
+    setMatchError('');
+    setAiRecommendations(null);
+    try {
+      const token = await currentUser.getIdToken();
+      const response = await fetch(`http://localhost:5000/api/ai/match/${id}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        }
+      });
+      
+      const data = await response.json();
+      
+      if (!response.ok) {
+        if (response.status === 401) throw new Error('Please log in again.');
+        if (response.status === 403) throw new Error('You are not authorized to find a team for this project.');
+        if (response.status === 404) throw new Error('Project not found.');
+        if (response.status === 503) throw new Error('AI matching service is currently unavailable. Please try again later.');
+        throw new Error('Unable to generate team recommendations. Please try again.');
+      }
+      
+      setAiRecommendations(data.recommendations || []);
+    } catch (err) {
+      setMatchError(err.message || 'Unable to generate team recommendations. Please try again.');
+    } finally {
+      setIsMatching(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="project-details-page container">
@@ -168,6 +205,15 @@ const ProjectDetails = () => {
           </div>
           
           <div className="project-actions">
+            {project.creatorFirebaseUid === currentUser.uid && (
+              <button 
+                className="btn btn-primary ai-match-btn" 
+                onClick={handleFindTeam} 
+                disabled={isMatching}
+              >
+                {isMatching ? 'Finding the best team...' : 'Find My Team'}
+              </button>
+            )}
             {project.creatorFirebaseUid !== currentUser.uid && (
               <>
                 {!joinStatus && (
@@ -202,8 +248,77 @@ const ProjectDetails = () => {
             </section>
 
             {project.creatorFirebaseUid === currentUser.uid && (
-              <section className="detail-section">
-                <h3>Join Requests</h3>
+              <>
+                <section className="detail-section ai-recommendation-section">
+                  <h3>AI Recommended Team</h3>
+                  
+                  {matchError && (
+                    <div className="alert error" style={{ marginBottom: '1rem' }}>
+                      {matchError}
+                    </div>
+                  )}
+                  
+                  {isMatching && (
+                    <div className="ai-loading-state">
+                      <div className="spinner"></div>
+                      <p>Finding the best team...</p>
+                    </div>
+                  )}
+
+                  {aiRecommendations !== null && !isMatching && (
+                    aiRecommendations.length === 0 ? (
+                      <p className="text-muted">No suitable students were found for this project yet.</p>
+                    ) : (
+                      <div className="recommendations-list">
+                        {aiRecommendations.map((rec, index) => (
+                          <div key={index} className="glass recommendation-card">
+                            <div className="rec-header">
+                              <h4>{rec.studentName || rec.studentId}</h4>
+                              <div className="match-score">
+                                {rec.matchScore}% Match
+                              </div>
+                            </div>
+                            
+                            <div className="rec-body">
+                              <div className="rec-group">
+                                <strong>Matched Skills</strong>
+                                <div className="skills-list small">
+                                  {rec.matchedSkills && rec.matchedSkills.length > 0 
+                                    ? rec.matchedSkills.map((s, i) => <span key={i} className="skill-tag">{s}</span>)
+                                    : <span className="text-muted">None listed</span>}
+                                </div>
+                              </div>
+
+                              <div className="rec-group">
+                                <strong>Why this student matches</strong>
+                                <ul>
+                                  {rec.matchingReasons && rec.matchingReasons.length > 0 
+                                    ? rec.matchingReasons.map((reason, i) => <li key={i}>{reason}</li>)
+                                    : <li className="text-muted">No specific reasons provided</li>}
+                                </ul>
+                              </div>
+
+                              {rec.skillGaps && rec.skillGaps.length > 0 && (
+                                <div className="rec-group">
+                                  <strong>Skill Gaps</strong>
+                                  <ul>
+                                    {rec.skillGaps.map((gap, i) => <li key={i}>{gap}</li>)}
+                                  </ul>
+                                </div>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )
+                  )}
+                  {aiRecommendations === null && !isMatching && !matchError && (
+                     <p className="text-muted">Click "Find My Team" to discover students with matching skills.</p>
+                  )}
+                </section>
+
+                <section className="detail-section">
+                  <h3>Join Requests</h3>
                 {ownerRequests.length === 0 ? (
                   <p className="text-muted">No join requests yet.</p>
                 ) : (
@@ -228,6 +343,7 @@ const ProjectDetails = () => {
                   </div>
                 )}
               </section>
+              </>
             )}
           </div>
 
