@@ -1,6 +1,7 @@
 import JoinRequest from '../models/JoinRequest.js';
 import Project from '../models/Project.js';
 import Student from '../models/Student.js';
+import Team from '../models/Team.js';
 
 // @desc    Request to join a project
 // @route   POST /api/projects/:projectId/join
@@ -126,6 +127,31 @@ export const updateRequestStatus = async (req, res) => {
       // The creator is 1 member. So acceptedCount + 1 must be < project.teamSize
       if (acceptedCount + 1 >= project.teamSize) {
         return res.status(400).json({ message: 'Project team size is already full' });
+      }
+
+      // Add the student to the Team
+      const acceptedStudent = await Student.findOne({ firebaseUid: joinRequest.studentFirebaseUid });
+      if (!acceptedStudent) {
+        return res.status(404).json({ message: 'Student profile for request not found' });
+      }
+
+      let team = await Team.findOne({ projectId: project._id });
+
+      if (team) {
+        if (!team.memberStudentIds.includes(acceptedStudent._id)) {
+          team.memberStudentIds.push(acceptedStudent._id);
+          await team.save();
+        }
+      } else {
+        const ownerStudent = await Student.findOne({ firebaseUid: project.creatorFirebaseUid });
+        if (!ownerStudent) {
+          return res.status(404).json({ message: 'Owner student profile not found' });
+        }
+        await Team.create({
+          projectId: project._id,
+          ownerStudentId: ownerStudent._id,
+          memberStudentIds: [ownerStudent._id, acceptedStudent._id]
+        });
       }
     }
 

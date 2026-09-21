@@ -189,6 +189,11 @@ const ProjectDetails = () => {
       const data = await res.json();
       if (!res.ok) throw new Error(data.message || 'Failed to update request');
       setOwnerRequests(prev => prev.map(r => r._id === requestId ? { ...r, status } : r));
+      
+      if (status === 'accepted') {
+        const teamRes = await fetch(`${API}/api/projects/${id}/team`, { headers: { Authorization: `Bearer ${token}` } });
+        if (teamRes.ok) setTeamData(await teamRes.json());
+      }
     } catch (err) { setActionError(err.message); }
   };
 
