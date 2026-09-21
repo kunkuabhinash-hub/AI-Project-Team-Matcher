@@ -7,6 +7,7 @@ import { notFound, errorHandler } from './middleware/errorMiddleware.js';
 import profileRoutes from './routes/profileRoutes.js';
 import projectRoutes from './routes/projectRoutes.js';
 import joinRequestRoutes from './routes/joinRequestRoutes.js';
+import aiRoutes from './routes/aiRoutes.js';
 
 // Load backend env vars
 dotenv.config({ path: path.resolve(import.meta.dirname, '.env') });
@@ -37,6 +38,7 @@ app.get('/api/health', (req, res) => {
 app.use('/api/profile', profileRoutes);
 app.use('/api/projects', projectRoutes);
 app.use('/api/join-requests', joinRequestRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Error Middleware
 app.use(notFound);

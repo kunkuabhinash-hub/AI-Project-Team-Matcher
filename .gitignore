@@ -24,3 +24,11 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Python ignores
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+env/
+ai-service/.env
