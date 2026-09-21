@@ -306,6 +306,11 @@ const ProjectDetails = () => {
                                   </ul>
                                 </div>
                               )}
+
+                              <div style={{ marginTop: '0.5rem', color: 'var(--text-main)', fontSize: '0.9rem' }}>
+                                <div><strong>Experience:</strong> {rec.experience || 'Not specified'}</div>
+                                <div><strong>Availability:</strong> {rec.availability || 'Not specified'}</div>
+                              </div>
                             </div>
                           </div>
                         ))}

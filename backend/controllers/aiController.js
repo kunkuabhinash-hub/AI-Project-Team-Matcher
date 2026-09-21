@@ -77,7 +77,37 @@ export const matchProject = async (req, res) => {
       return res.status(503).json({ message: result.message });
     }
 
-    // 6. Return structured Gemini result
+    // 6. Enrich AI recommendations with safe profile data from MongoDB
+    const enrichedRecommendations = [];
+    
+    for (const rec of result.data.recommendations) {
+      // Find the corresponding student in the local array
+      const studentProfile = students.find(s => s.firebaseUid === rec.studentId);
+      
+      if (!studentProfile) {
+        // Validation: If Gemini hallucinates an ID, fail safely per instructions
+        console.error(`Gemini recommended invalid studentId: ${rec.studentId}`);
+        return res.status(500).json({ message: 'Unable to load one or more recommended student profiles.' });
+      }
+      
+      enrichedRecommendations.push({
+        studentId: rec.studentId,
+        studentName: studentProfile.name,
+        skills: studentProfile.skills || [],
+        interests: studentProfile.interests || [],
+        experience: studentProfile.experience || 'Not specified',
+        availability: studentProfile.availability || 'Not specified',
+        matchScore: rec.matchScore,
+        matchedSkills: rec.matchedSkills,
+        matchingReasons: rec.matchingReasons,
+        skillGaps: rec.skillGaps
+      });
+    }
+
+    // Replace the raw recommendations with the enriched ones
+    result.data.recommendations = enrichedRecommendations;
+
+    // 7. Return enriched result
     res.status(200).json(result.data);
 
   } catch (error) {
