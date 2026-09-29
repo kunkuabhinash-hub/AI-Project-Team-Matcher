@@ -683,6 +683,11 @@ const ProjectDetails = () => {
                       <div>
                         <div className="team-member-name">{teamData.ownerStudentId.fullName}</div>
                         <div className="team-member-role">Project Owner</div>
+                        {teamData.ownerStudentId.collegeEmail && (
+                          <div style={{ fontSize: '12px', marginTop: '4px', color: 'var(--text-secondary)', wordBreak: 'break-all' }}>
+                            Email: <a href={`mailto:${teamData.ownerStudentId.collegeEmail}`} style={{ color: 'var(--primary)', textDecoration: 'none' }}>{teamData.ownerStudentId.collegeEmail}</a>
+                          </div>
+                        )}
                       </div>
                     </div>
                     {teamData.ownerStudentId.experience && (
@@ -705,6 +710,11 @@ const ProjectDetails = () => {
                           <div>
                             <div className="team-member-name">{member.fullName}</div>
                             <div className="team-member-role">Team Member</div>
+                            {member.collegeEmail && (
+                              <div style={{ fontSize: '12px', marginTop: '4px', color: 'var(--text-secondary)', wordBreak: 'break-all' }}>
+                                Email: <a href={`mailto:${member.collegeEmail}`} style={{ color: 'var(--primary)', textDecoration: 'none' }}>{member.collegeEmail}</a>
+                              </div>
+                            )}
                           </div>
                         </div>
                         {member.experience && (
