@@ -11,6 +11,9 @@ import aiRoutes from './routes/aiRoutes.js';
 import teamRoutes from './routes/teamRoutes.js';
 import invitationRoutes from './routes/invitationRoutes.js';
 import teamChatRoutes from './routes/teamChatRoutes.js';
+import http from 'http';
+import { Server } from 'socket.io';
+import { setupSocket } from './socket.js';
 
 // Load backend env vars
 dotenv.config({ path: path.resolve(import.meta.dirname, '.env') });
@@ -19,12 +22,21 @@ dotenv.config({ path: path.resolve(import.meta.dirname, '.env') });
 connectDB();
 
 const app = express();
+const httpServer = http.createServer(app);
 
-// Middleware
-app.use(cors({
+const corsOptions = {
   origin: process.env.FRONTEND_URL || 'http://localhost:5173', // Vite default port (or 5174 depending on what's available)
   credentials: true
-}));
+};
+
+const io = new Server(httpServer, {
+  cors: corsOptions
+});
+
+setupSocket(io);
+
+// Middleware
+app.use(cors(corsOptions));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -52,6 +64,6 @@ app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+httpServer.listen(PORT, () => {
   console.log(`🚀 Server running on port ${PORT}`);
 });

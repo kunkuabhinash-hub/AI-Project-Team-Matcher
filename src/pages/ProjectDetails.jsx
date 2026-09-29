@@ -3,6 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Navbar from '../components/Navbar';
 import { API_URL as API } from '../config';
+import { io } from 'socket.io-client';
 import './ProjectDetails.css';
 
 const getCatClass = (cat) => {
@@ -30,7 +31,10 @@ const TeamChat = ({ teamId, currentUser, API }) => {
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
   const [error, setError] = useState('');
+  const [socketStatus, setSocketStatus] = useState('Connecting...');
+  
   const messagesEndRef = useRef(null);
+  const socketRef = useRef(null);
 
   const fetchMessages = async () => {
     try {
@@ -49,8 +53,77 @@ const TeamChat = ({ teamId, currentUser, API }) => {
   };
 
   useEffect(() => {
-    fetchMessages();
-  }, [teamId]);
+    let isMounted = true;
+    
+    const initChat = async () => {
+      // 1. Fetch initial REST messages
+      await fetchMessages();
+      if (!isMounted) return;
+
+      // 2. Initialize Socket
+      try {
+        const token = await currentUser.getIdToken();
+        const socketUrl = API.replace(/\/api\/?$/, ''); // Remove trailing /api if present
+        
+        const socket = io(socketUrl, {
+          auth: { token }
+        });
+        socketRef.current = socket;
+
+        socket.on('connect', () => {
+          if (!isMounted) return;
+          setSocketStatus('Connected');
+          socket.emit('join-team', { teamId });
+        });
+
+        socket.on('disconnect', () => {
+          if (!isMounted) return;
+          setSocketStatus('Disconnected');
+        });
+
+        socket.on('connect_error', () => {
+          if (!isMounted) return;
+          setSocketStatus('Disconnected');
+          setError('Real-time connection unavailable. Please try again.');
+        });
+
+        socket.on('chat-error', (data) => {
+          if (!isMounted) return;
+          setError(data.message || 'An error occurred in chat');
+          setSending(false); // unlock if we were waiting for send
+        });
+
+        socket.on('new-team-message', (newMsg) => {
+          if (!isMounted) return;
+          setMessages(prev => {
+            // Prevent duplicates using MongoDB _id
+            if (prev.some(m => m._id === newMsg._id)) return prev;
+            return [...prev, newMsg];
+          });
+          setSending(false); // unlock sender if it was their message
+        });
+
+      } catch (err) {
+        if (!isMounted) return;
+        setSocketStatus('Disconnected');
+        setError('Failed to establish real-time connection.');
+      }
+    };
+
+    initChat();
+
+    return () => {
+      isMounted = false;
+      if (socketRef.current) {
+        socketRef.current.off('connect');
+        socketRef.current.off('disconnect');
+        socketRef.current.off('connect_error');
+        socketRef.current.off('chat-error');
+        socketRef.current.off('new-team-message');
+        socketRef.current.disconnect();
+      }
+    };
+  }, [teamId, currentUser, API]);
 
   useEffect(() => {
     if (messagesEndRef.current) {
@@ -67,35 +140,43 @@ const TeamChat = ({ teamId, currentUser, API }) => {
       return;
     }
     
+    if (!socketRef.current || !socketRef.current.connected) {
+      setError('Cannot send message: Not connected');
+      return;
+    }
+
     setSending(true);
     setError('');
     
-    try {
-      const token = await currentUser.getIdToken();
-      const res = await fetch(`${API}/api/teams/${teamId}/messages`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`
-        },
-        body: JSON.stringify({ message: trimmed })
-      });
-      if (!res.ok) throw new Error('Failed to send message');
-      const data = await res.json();
-      setMessages(prev => [...prev, data]);
-      setNewMessage('');
-    } catch (err) {
-      setError(err.message || 'Failed to send message');
-    } finally {
-      setSending(false);
-    }
+    // Send via socket. Wait for new-team-message to update UI.
+    socketRef.current.emit('send-team-message', {
+      teamId,
+      message: trimmed
+    });
+    
+    setNewMessage('');
+    // Note: setSending(false) will be called when the message arrives back from the server
+    // or if a chat-error happens. We could also add a timeout if we want, but server should be fast.
   };
 
   return (
     <div className="section-card chat-section" style={{ display: 'flex', flexDirection: 'column', height: '500px' }}>
-      <div className="chat-header" style={{ marginBottom: '16px' }}>
-        <h3 className="section-card-title" style={{ marginBottom: '4px', borderBottom: 'none', paddingBottom: 0 }}>Team Chat</h3>
-        <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Discuss your project with your team members.</p>
+      <div className="chat-header" style={{ marginBottom: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div>
+          <h3 className="section-card-title" style={{ marginBottom: '4px', borderBottom: 'none', paddingBottom: 0 }}>
+            Team Chat
+            <span style={{ 
+              fontSize: '12px', 
+              marginLeft: '12px', 
+              fontWeight: 'normal',
+              color: socketStatus === 'Connected' ? 'var(--success)' : 
+                     socketStatus === 'Connecting...' ? 'var(--warning)' : 'var(--error)' 
+            }}>
+              ● {socketStatus}
+            </span>
+          </h3>
+          <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Discuss your project with your team members.</p>
+        </div>
       </div>
 
       <div className="chat-messages-container" style={{ flex: 1, overflowY: 'auto', padding: '12px', background: 'var(--surface-1)', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
