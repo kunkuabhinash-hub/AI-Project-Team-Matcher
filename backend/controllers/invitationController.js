@@ -30,20 +30,29 @@ export const createInvitations = async (req, res) => {
     let existingTeam = await Team.findOne({ projectId });
     let currentMembersCount = existingTeam ? existingTeam.memberStudentIds.length : 1; // 1 for owner
 
-    // Check existing pending and accepted invitations for this project
-    const existingInvitations = await TeamInvitation.find({
+    // Check existing pending invitations for this project
+    const existingPendingInvitations = await TeamInvitation.find({
       projectId,
-      status: { $in: ['pending', 'accepted'] }
+      status: 'pending'
     });
 
     // Deduplicate UIDs and filter out owner
     const uniqueSelectedIds = [...new Set(selectedStudentIds)].filter(uid => uid !== req.user.uid);
 
-    // Filter out students who already have a pending or accepted invitation
+    // Filter out students who already have a pending invitation or are already in the active team
     const idsToInvite = [];
     for (const uid of uniqueSelectedIds) {
-       const alreadyInvited = existingInvitations.some(inv => inv.recipientFirebaseUid === uid);
-       if (!alreadyInvited) {
+       const hasPending = existingPendingInvitations.some(inv => inv.recipientFirebaseUid === uid);
+       
+       let inTeam = false;
+       if (existingTeam) {
+           const student = await Student.findOne({ firebaseUid: uid });
+           if (student && existingTeam.memberStudentIds.includes(student._id)) {
+               inTeam = true;
+           }
+       }
+
+       if (!hasPending && !inTeam) {
            idsToInvite.push(uid);
        }
     }
@@ -92,7 +101,7 @@ export const createInvitations = async (req, res) => {
 // @access  Private
 export const getStudentInvitations = async (req, res) => {
     try {
-        const invitations = await TeamInvitation.find({ recipientFirebaseUid: req.user.uid })
+        const invitations = await TeamInvitation.find({ recipientFirebaseUid: req.user.uid, status: 'pending' })
             .populate('projectId', 'title category teamSize')
             .sort({ createdAt: -1 });
 
