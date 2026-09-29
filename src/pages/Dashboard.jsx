@@ -21,6 +21,7 @@ const Dashboard = () => {
   const [completionPercent, setCompletionPercent] = useState(0);
   const [myProjects, setMyProjects] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [userFullName, setUserFullName] = useState('');
 
   useEffect(() => {
     const fetchDashboardData = async () => {
@@ -29,6 +30,7 @@ const Dashboard = () => {
         const profileRes = await fetch(`${API}/api/profile`, { headers: { Authorization: `Bearer ${token}` } });
         if (profileRes.ok) {
           const profileData = await profileRes.json();
+          if (profileData.fullName) setUserFullName(profileData.fullName);
           const fields = ['fullName', 'collegeEmail', 'department', 'year', 'skills', 'interests', 'experience', 'availability'];
           let filled = 0;
           fields.forEach(f => {
@@ -57,7 +59,7 @@ const Dashboard = () => {
       <div className="container dashboard-page">
         <div className="dashboard-header-section">
           <h1>Dashboard</h1>
-          <p>Welcome back, {currentUser?.displayName || 'Student'}</p>
+          <p>Welcome back, {userFullName || currentUser?.displayName || 'Student'}</p>
         </div>
 
         <div className="dashboard-grid">

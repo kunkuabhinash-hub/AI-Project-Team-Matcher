@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
+import { API_URL as API } from '../config';
 import './Hero.css';
 
 /* Static decorative product illustration — NOT real data */
@@ -84,6 +85,24 @@ const ProductVisualization = () => (
 
 const Hero = () => {
   const { currentUser, loading } = useAuth();
+  const [userFullName, setUserFullName] = useState('');
+
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        if (!currentUser) return;
+        const token = await currentUser.getIdToken();
+        const profileRes = await fetch(`${API}/api/profile`, { headers: { Authorization: `Bearer ${token}` } });
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          if (profileData.fullName) setUserFullName(profileData.fullName);
+        }
+      } catch (err) {
+        console.error('Hero profile fetch error:', err);
+      }
+    };
+    fetchProfile();
+  }, [currentUser]);
 
   if (loading) return <section className="hero" />;
 
@@ -103,7 +122,7 @@ const Hero = () => {
               <h1 className="hero-headline">
                 Welcome back,<br />
                 <span className="hero-headline-accent">
-                  {currentUser.displayName?.split(' ')[0] || 'Builder'}
+                  {userFullName || currentUser.displayName || 'Builder'}
                 </span>
               </h1>
               <p className="hero-subtext">
