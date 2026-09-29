@@ -12,6 +12,7 @@ import Projects from './pages/Projects';
 import ProjectDetails from './pages/ProjectDetails';
 import MyRequests from './pages/MyRequests';
 import MyInvitations from './pages/MyInvitations';
+import MyTeams from './pages/MyTeams';
 import './App.css';
 
 function App() {
@@ -45,6 +46,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <Projects myProjectsMode={true} />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/my-teams" 
+              element={
+                <ProtectedRoute>
+                  <MyTeams />
                 </ProtectedRoute>
               } 
             />

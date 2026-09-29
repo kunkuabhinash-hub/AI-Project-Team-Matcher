@@ -133,3 +133,46 @@ export const deleteTeam = async (req, res) => {
     res.status(500).json({ message: 'Internal server error deleting team' });
   }
 };
+
+// @desc    Get teams where the logged-in student is a member
+// @route   GET /api/my-teams
+// @access  Private
+export const getMyTeams = async (req, res) => {
+  try {
+    const student = await Student.findOne({ firebaseUid: req.user.uid });
+    if (!student) {
+      return res.status(404).json({ message: 'Student profile not found' });
+    }
+
+    const teams = await Team.find({
+      memberStudentIds: student._id
+    })
+    .populate('projectId')
+    .populate('ownerStudentId', 'fullName')
+    .populate('memberStudentIds', 'fullName');
+
+    // Filter and format results
+    const myTeams = teams.filter(team => team.projectId).map(team => {
+      const project = team.projectId;
+      return {
+        _id: project._id,
+        projectId: project._id,
+        title: project.title,
+        description: project.description,
+        category: project.category,
+        teamSize: project.teamSize,
+        currentMembersCount: team.memberStudentIds.length,
+        duration: project.duration,
+        status: project.status,
+        creatorName: project.creatorName,
+        creatorFirebaseUid: project.creatorFirebaseUid,
+        createdAt: project.createdAt
+      };
+    });
+
+    res.status(200).json(myTeams);
+  } catch (error) {
+    console.error('Error fetching my teams:', error);
+    res.status(500).json({ message: 'Internal server error fetching my teams' });
+  }
+};

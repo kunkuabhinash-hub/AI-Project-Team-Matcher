@@ -39,6 +39,7 @@ const Navbar = () => {
                   <Link to="/"               className={`nav-link ${isActive('/')}`}>Home</Link>
                   <Link to="/projects"       className={`nav-link ${isActive('/projects')}`}>Explore Projects</Link>
                   <Link to="/my-projects"    className={`nav-link ${isActive('/my-projects')}`}>My Projects</Link>
+                  <Link to="/my-teams"       className={`nav-link ${isActive('/my-teams')}`}>My Teams</Link>
                   <Link to="/create-project" className={`nav-link ${isActive('/create-project')}`}>Create Project</Link>
                   <Link to="/my-requests"    className={`nav-link ${isActive('/my-requests')}`}>My Requests</Link>
                   <Link to="/my-invitations" className={`nav-link ${isActive('/my-invitations')}`}>My Invitations</Link>
@@ -88,6 +89,7 @@ const Navbar = () => {
                 <Link to="/"               className={`mobile-nav-link ${isActive('/')}`}               onClick={closeMobile}>Home</Link>
                 <Link to="/projects"       className={`mobile-nav-link ${isActive('/projects')}`}       onClick={closeMobile}>Explore Projects</Link>
                 <Link to="/my-projects"    className={`mobile-nav-link ${isActive('/my-projects')}`}    onClick={closeMobile}>My Projects</Link>
+                <Link to="/my-teams"       className={`mobile-nav-link ${isActive('/my-teams')}`}       onClick={closeMobile}>My Teams</Link>
                 <Link to="/create-project" className={`mobile-nav-link ${isActive('/create-project')}`} onClick={closeMobile}>Create Project</Link>
                 <Link to="/my-requests"    className={`mobile-nav-link ${isActive('/my-requests')}`}    onClick={closeMobile}>My Requests</Link>
                 <Link to="/my-invitations" className={`mobile-nav-link ${isActive('/my-invitations')}`} onClick={closeMobile}>My Invitations</Link>

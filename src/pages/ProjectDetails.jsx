@@ -25,6 +25,17 @@ const getStatusClass = (status) => {
   return map[status] || 'status-planning';
 };
 
+const getStatusExplanation = (status) => {
+  const map = {
+    'Planning': 'Project created — team formation hasn\'t started yet.',
+    'Team Forming': 'Finding and forming the project team.',
+    'In Progress': 'Team formed — project work can begin.',
+    'Completed': 'Project completed.',
+    'Cancelled': 'Project cancelled.'
+  };
+  return map[status] || map['Planning'];
+};
+
 const TeamChat = ({ teamId, currentUser, API }) => {
   const [messages, setMessages] = useState([]);
   const [newMessage, setNewMessage] = useState('');
@@ -585,11 +596,16 @@ const ProjectDetails = () => {
             <div className="project-header-card">
               <div className="project-header-top">
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="project-header-meta" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                  <div className="project-header-meta" style={{ display: 'flex', alignItems: 'center', gap: '12px', flexWrap: 'wrap' }}>
                     <span className={`cat-badge ${getCatClass(project.category)}`}>{project.category}</span>
-                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      Status: <span className={`status-pill ${getStatusClass(project.status || 'Planning')}`}>{project.status || 'Planning'}</span>
-                    </span>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                        Status: <span className={`status-pill ${getStatusClass(project.status || 'Planning')}`}>{project.status || 'Planning'}</span>
+                      </span>
+                      <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        {getStatusExplanation(project.status || 'Planning')}
+                      </span>
+                    </div>
                     {isOwner && project.status !== 'Completed' && project.status !== 'Cancelled' && (
                       <div style={{ display: 'flex', gap: '8px' }}>
                         <button 

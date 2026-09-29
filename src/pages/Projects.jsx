@@ -19,6 +19,17 @@ const getCatClass = (cat) => {
   return map[cat] || '';
 };
 
+const getStatusExplanation = (status) => {
+  const map = {
+    'Planning': 'Project created — team formation hasn\'t started yet.',
+    'Team Forming': 'Finding and forming the project team.',
+    'In Progress': 'Team formed — project work can begin.',
+    'Completed': 'Project completed.',
+    'Cancelled': 'Project cancelled.'
+  };
+  return map[status] || map['Planning'];
+};
+
 const SkeletonCard = () => (
   <div className="project-skeleton">
     <div className="skeleton-line" style={{ height: '18px', width: '40%' }}></div>
@@ -40,6 +51,8 @@ const Projects = ({ myProjectsMode = false }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('All');
 
+  const [myTeamProjectIds, setMyTeamProjectIds] = useState([]);
+
   useEffect(() => {
     const fetchProjects = async () => {
       try {
@@ -47,6 +60,18 @@ const Projects = ({ myProjectsMode = false }) => {
         if (currentUser) {
           const token = await currentUser.getIdToken();
           headers['Authorization'] = `Bearer ${token}`;
+          
+          if (!myProjectsMode) {
+            try {
+              const mtRes = await fetch(`${API_URL}/api/my-teams`, { headers });
+              if (mtRes.ok) {
+                const mtData = await mtRes.json();
+                setMyTeamProjectIds(mtData.map(t => t.projectId || t._id));
+              }
+            } catch (e) {
+              console.error('Failed to fetch my teams', e);
+            }
+          }
         }
         const response = await fetch(`${API_URL}/api/projects`, { headers });
         if (!response.ok) throw new Error('Failed to fetch projects');
@@ -60,7 +85,7 @@ const Projects = ({ myProjectsMode = false }) => {
       }
     };
     fetchProjects();
-  }, [currentUser]);
+  }, [currentUser, myProjectsMode]);
 
   const finalFilteredProjects = useMemo(() => {
     const filtered = projects.filter(project => {
@@ -75,9 +100,10 @@ const Projects = ({ myProjectsMode = false }) => {
 
     return filtered.filter(project => {
       const isOwner = currentUser && project.creatorFirebaseUid === currentUser.uid;
-      return myProjectsMode ? isOwner : !isOwner;
+      const isTeamMember = myTeamProjectIds.includes(project._id);
+      return myProjectsMode ? isOwner : (!isOwner && !isTeamMember);
     });
-  }, [projects, searchQuery, selectedCategory, currentUser, myProjectsMode]);
+  }, [projects, searchQuery, selectedCategory, currentUser, myProjectsMode, myTeamProjectIds]);
 
   const handleReset = () => { setSearchQuery(''); setSelectedCategory('All'); };
 
@@ -87,9 +113,6 @@ const Projects = ({ myProjectsMode = false }) => {
         <div key={project._id} className="project-card" onClick={() => {}}>
           <div className="project-card-top" style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
             <span className={`cat-badge ${getCatClass(project.category)}`}>{project.category}</span>
-            <span className="status-badge" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', fontSize: '11px', padding: '2px 6px', fontWeight: '500', borderRadius: '4px' }}>
-              {project.status || 'Planning'}
-            </span>
             <span className="project-date-text" style={{ marginLeft: 'auto' }}>
               {new Date(project.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             </span>
@@ -98,7 +121,19 @@ const Projects = ({ myProjectsMode = false }) => {
           <h3 className="project-card-title">{project.title}</h3>
           <p className="project-card-desc">{project.description}</p>
 
-          <div className="project-card-skills">
+          <div style={{ marginTop: '12px', padding: '10px', backgroundColor: 'var(--surface-1)', borderRadius: '6px', border: '1px solid var(--border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '4px' }}>
+              <span style={{ fontSize: '13px', fontWeight: 600, color: 'var(--text-secondary)' }}>Status:</span>
+              <span className="status-badge" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', fontSize: '11px', padding: '2px 6px', fontWeight: '500', borderRadius: '4px' }}>
+                {project.status || 'Planning'}
+              </span>
+            </div>
+            <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+              {getStatusExplanation(project.status)}
+            </div>
+          </div>
+
+          <div className="project-card-skills" style={{ marginTop: '16px' }}>
             {project.requiredSkills.slice(0, 4).map((skill, i) => (
               <span key={i} className="skill-tag">{skill}</span>
             ))}

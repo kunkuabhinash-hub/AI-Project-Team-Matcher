@@ -5,6 +5,17 @@ import Navbar from '../components/Navbar';
 import { API_URL as API } from '../config';
 import './Dashboard.css';
 
+const getStatusExplanation = (status) => {
+  const map = {
+    'Planning': 'Project created — team formation hasn\'t started yet.',
+    'Team Forming': 'Finding and forming the project team.',
+    'In Progress': 'Team formed — project work can begin.',
+    'Completed': 'Project completed.',
+    'Cancelled': 'Project cancelled.'
+  };
+  return map[status] || map['Planning'];
+};
+
 const Dashboard = () => {
   const { currentUser } = useAuth();
   const [completionPercent, setCompletionPercent] = useState(0);
@@ -101,6 +112,9 @@ const Dashboard = () => {
                         </span>
                       </div>
                       <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
+                        {getStatusExplanation(project.status || 'Planning')}
+                      </div>
+                      <div style={{ fontSize: '12px', color: 'var(--text-muted)', marginTop: '4px' }}>
                         {project.category} · Created {new Date(project.createdAt).toLocaleDateString()}
                       </div>
                     </div>

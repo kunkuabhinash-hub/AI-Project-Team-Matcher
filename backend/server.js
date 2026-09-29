@@ -11,6 +11,7 @@ import aiRoutes from './routes/aiRoutes.js';
 import teamRoutes from './routes/teamRoutes.js';
 import invitationRoutes from './routes/invitationRoutes.js';
 import teamChatRoutes from './routes/teamChatRoutes.js';
+import myTeamsRoutes from './routes/myTeamsRoutes.js';
 import http from 'http';
 import { Server } from 'socket.io';
 import { setupSocket } from './socket.js';
@@ -57,6 +58,7 @@ app.use('/api/join-requests', joinRequestRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api', invitationRoutes);
 app.use('/api/teams', teamChatRoutes);
+app.use('/api/my-teams', myTeamsRoutes);
 
 // Error Middleware
 app.use(notFound);
