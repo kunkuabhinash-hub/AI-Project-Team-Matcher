@@ -50,6 +50,18 @@ export const matchProject = async (req, res) => {
       });
     }
 
+    // 3.5 Deterministic validation
+    const reqSkillsRaw = project.requiredSkills || [];
+    if (reqSkillsRaw.length === 0) {
+      return res.status(200).json({
+        status: 'success',
+        message: 'No suitable teammates found. This project does not have enough skill requirements for matching.',
+        recommendations: []
+      });
+    }
+
+    const reqSkills = reqSkillsRaw.map(s => s.trim().toLowerCase());
+
     // 4. Map to stripped-down payloads (No sensitive info!)
     const projectPayload = {
       id: project._id.toString(),
@@ -61,17 +73,46 @@ export const matchProject = async (req, res) => {
       duration: project.duration || 'Not specified'
     };
 
-    const studentsPayload = students.map(s => ({
-      id: s.firebaseUid,
-      name: s.fullName,
-      skills: s.skills || [],
-      interests: s.interests || [],
-      experience: s.experience || 'Not specified',
-      availability: s.availability || 'Not specified'
-    }));
+    const eligibleStudents = [];
+
+    for (const s of students) {
+      const sSkillsRaw = s.skills || [];
+      const sSkillsNorm = sSkillsRaw.map(x => x.trim().toLowerCase());
+      
+      const exactMatches = [];
+      for (const rawProjSkill of project.requiredSkills) {
+        if (sSkillsNorm.includes(rawProjSkill.trim().toLowerCase())) {
+          exactMatches.push(rawProjSkill);
+        }
+      }
+      
+      if (exactMatches.length > 0) {
+        const baseMatchScore = Math.round((exactMatches.length / project.requiredSkills.length) * 100);
+        eligibleStudents.push({
+          id: s.firebaseUid,
+          name: s.fullName,
+          skills: s.skills || [],
+          interests: s.interests || [],
+          experience: s.experience || 'Not specified',
+          availability: s.availability || 'Not specified',
+          deterministicMatchedSkills: exactMatches,
+          baseMatchScore: baseMatchScore
+        });
+      }
+    }
+
+    if (eligibleStudents.length === 0) {
+      return res.status(200).json({
+        status: 'success',
+        message: 'No suitable teammates found. No students currently match the required project skills.',
+        recommendations: []
+      });
+    }
+
+    console.log(`[AI Match] Project requires ${project.requiredSkills.length} skills. Eligible candidates: ${eligibleStudents.length}. Calling Gemini...`);
 
     // 5. Call Python FastAPI AI service
-    const result = await getRecommendations(projectPayload, studentsPayload);
+    const result = await getRecommendations(projectPayload, eligibleStudents);
 
     if (result.status === 'error') {
       return res.status(503).json({ message: result.message });

@@ -58,6 +58,10 @@ def match_students_to_project(project_data: dict, students_data: list) -> dict:
     - The creator should not be recommended as a candidate if they are already the project owner.
     - Recommendations must be explainable using the supplied data.
     - IMPORTANT: For the `studentId` field in the response, you MUST use the exact `id` string from the student's profile. Do not use their name.
+    - CRITICAL: Use the `deterministicMatchedSkills` supplied in the students data as the precise `matchedSkills` array in your response. Do NOT add any skills to `matchedSkills` that are not in `deterministicMatchedSkills`.
+    - CRITICAL: Never claim a skill is matched unless it appears in both the project requiredSkills and candidate skills (which is already calculated for you in `deterministicMatchedSkills`).
+    - CRITICAL: If a candidate has no meaningful match, do not recommend them.
+    - CRITICAL: `matchScore` must be at least the `baseMatchScore` provided for the student.
     
     PROJECT DATA:
     {json.dumps(project_data, indent=2)}

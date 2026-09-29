@@ -46,6 +46,8 @@ class StudentPayload(BaseModel):
     interests: List[str]
     experience: str
     availability: str
+    deterministicMatchedSkills: Optional[List[str]] = []
+    baseMatchScore: Optional[int] = 0
 
 class MatchRequest(BaseModel):
     project: ProjectPayload
