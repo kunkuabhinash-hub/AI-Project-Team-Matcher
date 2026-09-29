@@ -26,7 +26,7 @@ const app = express();
 const httpServer = http.createServer(app);
 
 const corsOptions = {
-  origin: process.env.FRONTEND_URL || 'http://localhost:5173', // Vite default port (or 5174 depending on what's available)
+  origin: process.env.CORS_ORIGIN || process.env.FRONTEND_URL || 'http://localhost:5173', // Vite default port (or 5174 depending on what's available)
   credentials: true
 };
 
