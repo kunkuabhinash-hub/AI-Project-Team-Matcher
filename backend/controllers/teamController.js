@@ -2,6 +2,7 @@ import Project from '../models/Project.js';
 import Student from '../models/Student.js';
 import Team from '../models/Team.js';
 import mongoose from 'mongoose';
+import { syncProjectStatus } from './projectController.js';
 
 // @desc    Form a team for a project
 // @route   POST /api/projects/:projectId/team
@@ -70,6 +71,8 @@ export const createTeam = async (req, res) => {
       .populate('ownerStudentId', 'fullName skills interests experience availability')
       .populate('memberStudentIds', 'fullName skills interests experience availability');
 
+    await syncProjectStatus(project._id);
+
     res.status(201).json(populatedTeam);
 
   } catch (error) {
@@ -121,6 +124,8 @@ export const deleteTeam = async (req, res) => {
     if (!team) {
       return res.status(404).json({ message: 'Team not found' });
     }
+
+    await syncProjectStatus(projectId);
 
     res.status(200).json({ message: 'Team deleted successfully' });
   } catch (error) {

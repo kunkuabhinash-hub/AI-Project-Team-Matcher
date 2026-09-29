@@ -13,6 +13,17 @@ const getCatClass = (cat) => {
 const getScoreClass = (score) => score >= 80 ? 'score-high' : score >= 50 ? 'score-medium' : 'score-low';
 const getInitial = (name) => name ? name.charAt(0).toUpperCase() : '?';
 
+const getStatusClass = (status) => {
+  const map = {
+    'Planning': 'status-planning',
+    'Team Forming': 'status-team-forming',
+    'In Progress': 'status-in-progress',
+    'Completed': 'status-completed',
+    'Cancelled': 'status-cancelled'
+  };
+  return map[status] || 'status-planning';
+};
+
 const ProjectDetails = () => {
   const { id } = useParams();
   const { currentUser } = useAuth();
@@ -26,6 +37,8 @@ const ProjectDetails = () => {
   const [requesting, setRequesting] = useState(false);
   const [actionError, setActionError] = useState('');
 
+  const [invitations, setInvitations] = useState([]);
+  
   const [teamData, setTeamData] = useState(null);
   const [selectedStudents, setSelectedStudents] = useState([]);
   const [isFormingTeam, setIsFormingTeam] = useState(false);
@@ -35,6 +48,7 @@ const ProjectDetails = () => {
   const [projectOwner, setProjectOwner] = useState(null);
   const [isMatching, setIsMatching] = useState(false);
   const [matchError, setMatchError] = useState('');
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
 
   const computedCoverage = React.useMemo(() => {
     if (!project || !project.requiredSkills || !projectOwner) return null;
@@ -49,14 +63,22 @@ const ProjectDetails = () => {
     }];
 
     // 2. Add currently selected students from aiRecommendations
-    if (aiRecommendations) {
+    if (aiRecommendations && Array.isArray(aiRecommendations)) {
       selectedStudents.forEach(id => {
-        const rec = aiRecommendations.find(r => r.studentId === id);
+        // Force case-insensitive match just in case, and match both id and firebaseUid if available
+        const rec = aiRecommendations.find(r => 
+          String(r.studentId) === String(id) || 
+          String(r.id) === String(id) ||
+          String(r._id) === String(id)
+        );
         if (rec) {
           teamMembers.push({
-            studentId: rec.studentId,
-            studentName: rec.studentName || rec.studentId,
-            skills: rec.skills || []
+            studentId: rec.studentId || id,
+            studentName: rec.studentName || rec.studentId || id,
+            // Ensure skills is always an array of strings
+            skills: Array.isArray(rec.skills) ? rec.skills : 
+                   (typeof rec.skills === 'string' ? rec.skills.split(',').map(s => s.trim()) : 
+                   (rec.matchedSkills || []))
           });
         }
       });
@@ -138,6 +160,9 @@ const ProjectDetails = () => {
         if (data.creatorFirebaseUid === currentUser.uid) {
           const reqRes = await fetch(`${API}/api/projects/${id}/join-requests`, { headers: { Authorization: `Bearer ${token}` } });
           if (reqRes.ok) setOwnerRequests(await reqRes.json());
+          
+          const invRes = await fetch(`${API}/api/projects/${id}/invitations`, { headers: { Authorization: `Bearer ${token}` } });
+          if (invRes.ok) setInvitations(await invRes.json());
         } else {
           const myRes = await fetch(`${API}/api/join-requests/my`, { headers: { Authorization: `Bearer ${token}` } });
           if (myRes.ok) {
@@ -202,18 +227,24 @@ const ProjectDetails = () => {
     );
   };
 
-  const handleFormTeam = async () => {
+  const handleSendInvitations = async () => {
     setIsFormingTeam(true); setActionError('');
     try {
       const token = await currentUser.getIdToken();
-      const res = await fetch(`${API}/api/projects/${id}/team`, {
+      const res = await fetch(`${API}/api/projects/${id}/invitations`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
         body: JSON.stringify({ selectedStudentIds: selectedStudents })
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.message || 'Failed to form team');
-      setTeamData(data);
+      if (!res.ok) throw new Error(data.message || 'Failed to send invitations');
+      
+      // Refresh invitations
+      const invRes = await fetch(`${API}/api/projects/${id}/invitations`, { headers: { Authorization: `Bearer ${token}` } });
+      if (invRes.ok) setInvitations(await invRes.json());
+      
+      setSelectedStudents([]);
+      alert('Invitations sent successfully!');
     } catch (err) { setActionError(err.message); }
     finally { setIsFormingTeam(false); }
   };
@@ -231,6 +262,27 @@ const ProjectDetails = () => {
       setTeamData(null); setSelectedStudents([]);
     } catch (err) { setActionError(err.message); }
     finally { setIsDeletingTeam(false); }
+  };
+
+  const handleStatusAction = async (newStatus) => {
+    if (!window.confirm(`Are you sure you want to mark this project as ${newStatus}?`)) return;
+    setIsUpdatingStatus(true);
+    setActionError('');
+    try {
+      const token = await currentUser.getIdToken();
+      const res = await fetch(`${API}/api/projects/${id}/status`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ status: newStatus })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.message || 'Failed to update status');
+      setProject(prev => ({ ...prev, status: data.status }));
+    } catch (err) {
+      setActionError(err.message);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
   };
 
   const handleFindTeam = async () => {
@@ -318,8 +370,31 @@ const ProjectDetails = () => {
             <div className="project-header-card">
               <div className="project-header-top">
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div className="project-header-meta">
+                  <div className="project-header-meta" style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                     <span className={`cat-badge ${getCatClass(project.category)}`}>{project.category}</span>
+                    <span style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: '500', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                      Status: <span className={`status-pill ${getStatusClass(project.status || 'Planning')}`}>{project.status || 'Planning'}</span>
+                    </span>
+                    {isOwner && project.status !== 'Completed' && project.status !== 'Cancelled' && (
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button 
+                          className="btn btn-sm btn-outline" 
+                          onClick={() => handleStatusAction('Completed')}
+                          disabled={isUpdatingStatus}
+                          style={{ fontSize: '11px', padding: '2px 8px' }}
+                        >
+                          Mark Completed
+                        </button>
+                        <button 
+                          className="btn btn-sm btn-outline" 
+                          onClick={() => handleStatusAction('Cancelled')}
+                          disabled={isUpdatingStatus}
+                          style={{ fontSize: '11px', padding: '2px 8px', color: 'var(--error)' }}
+                        >
+                          Cancel Project
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <h1 className="project-title">{project.title}</h1>
                   <div className="project-byline">
@@ -457,10 +532,10 @@ const ProjectDetails = () => {
                         </span>
                         <button
                           className="btn btn-primary btn-sm"
-                          disabled={selectedStudents.length + 1 > project.teamSize || isFormingTeam || selectedStudents.length === 0}
-                          onClick={handleFormTeam}
+                          disabled={selectedStudents.length === 0 || isFormingTeam}
+                          onClick={handleSendInvitations}
                         >
-                          {isFormingTeam ? 'Forming...' : 'Form Team'}
+                          {isFormingTeam ? 'Sending...' : 'Send Invitations'}
                         </button>
                       </div>
                     )}
@@ -555,23 +630,31 @@ const ProjectDetails = () => {
                           <div className="recommendations-grid">
                             {aiRecommendations.map((rec, index) => {
                               const isSelected = selectedStudents.includes(rec.studentId);
-                              const canSelect = isSelected || !maxReached;
+                              const existingInv = invitations.find(inv => inv.recipientFirebaseUid === rec.studentId);
+                              const isInvited = !!existingInv;
+                              const canSelect = !isInvited && (isSelected || !maxReached);
                               return (
                                 <div
                                   key={index}
-                                  className={`rec-card ${isSelected ? 'selected' : ''} ${!canSelect && !isSelected ? 'disabled-select' : ''}`}
+                                  className={`rec-card ${isSelected ? 'selected' : ''} ${(!canSelect && !isSelected) || isInvited ? 'disabled-select' : ''}`}
                                   onClick={() => canSelect && handleToggleStudent(rec.studentId)}
                                 >
                                   <div className="rec-card-header">
                                     <div className="rec-card-left">
-                                      <input
-                                        type="checkbox"
-                                        className="rec-checkbox"
-                                        checked={isSelected}
-                                        onChange={() => canSelect && handleToggleStudent(rec.studentId)}
-                                        disabled={!canSelect}
-                                        onClick={e => e.stopPropagation()}
-                                      />
+                                      {isInvited ? (
+                                          <div className={`status-badge ${existingInv.status}`} style={{ marginRight: '10px' }}>
+                                              {existingInv.status}
+                                          </div>
+                                      ) : (
+                                          <input
+                                            type="checkbox"
+                                            className="rec-checkbox"
+                                            checked={isSelected}
+                                            onChange={() => canSelect && handleToggleStudent(rec.studentId)}
+                                            disabled={!canSelect}
+                                            onClick={e => e.stopPropagation()}
+                                          />
+                                      )}
                                       <div className="rec-avatar">{getInitial(rec.studentName || '')}</div>
                                       <div>
                                         <div className="rec-name">{rec.studentName || rec.studentId}</div>

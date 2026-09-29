@@ -9,6 +9,7 @@ import projectRoutes from './routes/projectRoutes.js';
 import joinRequestRoutes from './routes/joinRequestRoutes.js';
 import aiRoutes from './routes/aiRoutes.js';
 import teamRoutes from './routes/teamRoutes.js';
+import invitationRoutes from './routes/invitationRoutes.js';
 
 // Load backend env vars
 dotenv.config({ path: path.resolve(import.meta.dirname, '.env') });
@@ -41,6 +42,7 @@ app.use('/api/projects', projectRoutes);
 app.use('/api/projects', teamRoutes);
 app.use('/api/join-requests', joinRequestRoutes);
 app.use('/api/ai', aiRoutes);
+app.use('/api', invitationRoutes);
 
 // Error Middleware
 app.use(notFound);

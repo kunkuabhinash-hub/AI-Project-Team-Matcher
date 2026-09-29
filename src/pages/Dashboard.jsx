@@ -94,7 +94,12 @@ const Dashboard = () => {
                 {myProjects.map(project => (
                   <div key={project._id} className="dashboard-project-row">
                     <div>
-                      <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)', marginBottom: '3px' }}>{project.title}</div>
+                      <div style={{ fontWeight: 600, fontSize: '14px', color: 'var(--text-primary)', marginBottom: '3px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        {project.title}
+                        <span className="status-badge" style={{ backgroundColor: 'var(--bg-secondary)', color: 'var(--text-primary)', border: '1px solid var(--border-color)', fontSize: '10px', padding: '1px 5px', fontWeight: '500', borderRadius: '4px' }}>
+                          {project.status || 'Planning'}
+                        </span>
+                      </div>
                       <div style={{ fontSize: '12px', color: 'var(--text-muted)' }}>
                         {project.category} · Created {new Date(project.createdAt).toLocaleDateString()}
                       </div>

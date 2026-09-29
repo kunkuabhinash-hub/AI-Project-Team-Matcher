@@ -11,6 +11,7 @@ import CreateProject from './pages/CreateProject';
 import Projects from './pages/Projects';
 import ProjectDetails from './pages/ProjectDetails';
 import MyRequests from './pages/MyRequests';
+import MyInvitations from './pages/MyInvitations';
 import './App.css';
 
 function App() {
@@ -38,7 +39,15 @@ function App() {
                 </ProtectedRoute>
               } 
             />
-            <Route path="/projects" element={<Projects />} />
+            <Route path="/projects" element={<Projects myProjectsMode={false} />} />
+            <Route 
+              path="/my-projects" 
+              element={
+                <ProtectedRoute>
+                  <Projects myProjectsMode={true} />
+                </ProtectedRoute>
+              } 
+            />
             <Route 
               path="/projects/:id" 
               element={
@@ -60,6 +69,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <MyRequests />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/my-invitations" 
+              element={
+                <ProtectedRoute>
+                  <MyInvitations />
                 </ProtectedRoute>
               } 
             />

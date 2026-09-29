@@ -2,6 +2,7 @@ import JoinRequest from '../models/JoinRequest.js';
 import Project from '../models/Project.js';
 import Student from '../models/Student.js';
 import Team from '../models/Team.js';
+import { syncProjectStatus } from './projectController.js';
 
 // @desc    Request to join a project
 // @route   POST /api/projects/:projectId/join
@@ -157,6 +158,8 @@ export const updateRequestStatus = async (req, res) => {
 
     joinRequest.status = status;
     const updatedRequest = await joinRequest.save();
+
+    await syncProjectStatus(project._id);
 
     res.status(200).json(updatedRequest);
   } catch (error) {

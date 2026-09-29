@@ -42,6 +42,11 @@ const projectSchema = new mongoose.Schema({
   creatorEmail: {
     type: String,
     default: ''
+  },
+  status: {
+    type: String,
+    enum: ['Planning', 'Team Forming', 'In Progress', 'Completed', 'Cancelled'],
+    default: 'Planning'
   }
 }, {
   timestamps: true // Automatically adds createdAt and updatedAt
