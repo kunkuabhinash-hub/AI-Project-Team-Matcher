@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAuth } from '../contexts/AuthContext';
 import Navbar from '../components/Navbar';
@@ -22,6 +22,132 @@ const getStatusClass = (status) => {
     'Cancelled': 'status-cancelled'
   };
   return map[status] || 'status-planning';
+};
+
+const TeamChat = ({ teamId, currentUser, API }) => {
+  const [messages, setMessages] = useState([]);
+  const [newMessage, setNewMessage] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [sending, setSending] = useState(false);
+  const [error, setError] = useState('');
+  const messagesEndRef = useRef(null);
+
+  const fetchMessages = async () => {
+    try {
+      const token = await currentUser.getIdToken();
+      const res = await fetch(`${API}/api/teams/${teamId}/messages`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!res.ok) throw new Error('Failed to load chat messages');
+      const data = await res.json();
+      setMessages(data);
+    } catch (err) {
+      setError(err.message || 'Failed to load messages');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchMessages();
+  }, [teamId]);
+
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
+
+  const handleSendMessage = async (e) => {
+    e.preventDefault();
+    const trimmed = newMessage.trim();
+    if (!trimmed) return;
+    if (trimmed.length > 1000) {
+      setError('Message exceeds 1000 characters limit');
+      return;
+    }
+    
+    setSending(true);
+    setError('');
+    
+    try {
+      const token = await currentUser.getIdToken();
+      const res = await fetch(`${API}/api/teams/${teamId}/messages`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({ message: trimmed })
+      });
+      if (!res.ok) throw new Error('Failed to send message');
+      const data = await res.json();
+      setMessages(prev => [...prev, data]);
+      setNewMessage('');
+    } catch (err) {
+      setError(err.message || 'Failed to send message');
+    } finally {
+      setSending(false);
+    }
+  };
+
+  return (
+    <div className="section-card chat-section" style={{ display: 'flex', flexDirection: 'column', height: '500px' }}>
+      <div className="chat-header" style={{ marginBottom: '16px' }}>
+        <h3 className="section-card-title" style={{ marginBottom: '4px', borderBottom: 'none', paddingBottom: 0 }}>Team Chat</h3>
+        <p style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Discuss your project with your team members.</p>
+      </div>
+
+      <div className="chat-messages-container" style={{ flex: 1, overflowY: 'auto', padding: '12px', background: 'var(--surface-1)', borderRadius: 'var(--r-md)', border: '1px solid var(--border)', marginBottom: '16px', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+        {loading ? (
+          <div className="chat-loading" style={{ color: 'var(--text-muted)', textAlign: 'center', margin: 'auto' }}>Loading messages...</div>
+        ) : messages.length === 0 ? (
+          <div className="chat-empty" style={{ color: 'var(--text-muted)', textAlign: 'center', margin: 'auto' }}>No messages yet. Start the conversation!</div>
+        ) : (
+          <div className="chat-messages-list" style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+            {messages.map(msg => {
+              const isMine = msg.senderFirebaseUid === currentUser.uid;
+              return (
+                <div key={msg._id} className={`chat-message-wrapper ${isMine ? 'mine' : 'theirs'}`} style={{ display: 'flex', flexDirection: 'column', alignItems: isMine ? 'flex-end' : 'flex-start' }}>
+                  <div className="chat-message-bubble" style={{ maxWidth: '85%', padding: '8px 12px', borderRadius: '12px', background: isMine ? 'var(--blue-muted)' : 'var(--surface-2)', border: isMine ? '1px solid var(--blue-border)' : '1px solid var(--border)', color: 'var(--text-primary)', borderBottomRightRadius: isMine ? '4px' : '12px', borderBottomLeftRadius: isMine ? '12px' : '4px' }}>
+                    {!isMine && <div className="chat-sender-name" style={{ fontSize: '11px', fontWeight: '600', color: 'var(--text-secondary)', marginBottom: '2px' }}>{msg.senderName}</div>}
+                    <div className="chat-message-text" style={{ fontSize: '14px', whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: '1.4' }}>{msg.message}</div>
+                    <div className="chat-message-time" style={{ fontSize: '10px', color: 'var(--text-muted)', textAlign: 'right', marginTop: '4px' }}>
+                      {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+            <div ref={messagesEndRef} />
+          </div>
+        )}
+      </div>
+
+      {error && <div className="form-error" style={{ marginBottom: '8px' }}>{error}</div>}
+
+      <form className="chat-input-area" onSubmit={handleSendMessage} style={{ display: 'flex', gap: '8px' }}>
+        <textarea
+          className="chat-input"
+          placeholder="Type a message..."
+          value={newMessage}
+          onChange={(e) => setNewMessage(e.target.value)}
+          disabled={sending}
+          rows={1}
+          style={{ flex: 1, resize: 'none', minHeight: '40px', padding: '10px 12px' }}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              handleSendMessage(e);
+            }
+          }}
+        />
+        <button type="submit" className="btn btn-primary" disabled={sending || !newMessage.trim()} style={{ height: 'auto', padding: '0 20px' }}>
+          {sending ? '...' : 'Send'}
+        </button>
+      </form>
+    </div>
+  );
 };
 
 const ProjectDetails = () => {
@@ -309,6 +435,14 @@ const ProjectDetails = () => {
 
   const isOwner = project && currentUser && project.creatorFirebaseUid === currentUser.uid;
 
+  const isTeamMember = teamData && currentUser && (
+    teamData.ownerStudentId?.firebaseUid === currentUser.uid ||
+    teamData.ownerStudentId === currentUser.uid || // in case it's not populated yet
+    teamData.memberStudentIds?.some(m => m.firebaseUid === currentUser.uid || m === currentUser.uid)
+  );
+
+  const isTeamFull = teamData ? teamData.memberStudentIds.length >= project.teamSize : false;
+
   if (loading) {
     return (
       <>
@@ -412,16 +546,18 @@ const ProjectDetails = () => {
                       )}
                     </button>
                   )}
-                  {!isOwner && (
+                  {!isOwner && !isTeamMember && (
                     <>
-                      {!joinStatus && (
+                      {joinStatus === 'pending' && <span className="status-badge pending">Request Pending</span>}
+                      {joinStatus === 'rejected' && <span className="status-badge rejected">Request Rejected</span>}
+                      {!joinStatus && !isTeamFull && (
                         <button className="btn btn-primary" onClick={handleRequestJoin} disabled={requesting}>
                           {requesting ? 'Sending...' : 'Request to Join'}
                         </button>
                       )}
-                      {joinStatus === 'pending'  && <span className="status-badge pending">Request Pending</span>}
-                      {joinStatus === 'accepted' && <span className="status-badge accepted">Request Accepted</span>}
-                      {joinStatus === 'rejected' && <span className="status-badge rejected">Request Rejected</span>}
+                      {!joinStatus && isTeamFull && (
+                        <span className="status-badge" style={{ background: 'var(--surface-2)', color: 'var(--text-muted)' }}>Team Full</span>
+                      )}
                     </>
                   )}
                 </div>
@@ -510,6 +646,11 @@ const ProjectDetails = () => {
                   </div>
                 )}
               </div>
+            )}
+
+            {/* ── Team Chat (Visible only to team members when team exists) ── */}
+            {teamData && isTeamMember && (
+              <TeamChat teamId={teamData._id} currentUser={currentUser} API={API} />
             )}
 
             {/* ── AI Matching (Owner only, no team yet) ── */}

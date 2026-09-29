@@ -102,7 +102,13 @@ export const getProjectById = async (req, res) => {
       return res.status(404).json({ message: 'Project not found' });
     }
     
-    res.status(200).json(project);
+    // Sync the status automatically on fetch
+    await syncProjectStatus(project._id);
+    
+    // Re-fetch project to get the updated status if it changed
+    const updatedProject = await Project.findById(req.params.id);
+    
+    res.status(200).json(updatedProject);
   } catch (error) {
     console.error('Error fetching project:', error);
     if (error.name === 'CastError') {
